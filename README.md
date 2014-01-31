@@ -6,6 +6,12 @@ It generates tarballs for each package.  On Ubuntu, it can also generate .deb pa
 
 For a list of supported packages, do 'yb_list'.
 
+## installing
+
+To install yobuild from source, do 'sudo make install'.  This is very quick, it doesn't build any packages.
+
+You can uninstall it with 'sudo make uninstall'.
+
 ## building
 
 To build a single package (e.g. xz), do 'yb_buildone xz'.
@@ -22,9 +28,11 @@ Yobuild recipes are standalone scripts which live in /usr/share/yobuild/recipes.
 
 A typical recipe, /usr/share/yobuild/recipes/xz.recipe, looks like this:
 
+```
 yb_default xz http://tukaani.org/xz/xz-5.0.4.tar.gz d67405798dad645965fe51cf4e40c23d1201fb234378d3c44f5a3787142b83b6
+```
 
-where the long hext string is the sha256 sum of the source tarball.
+where the long hext string is the sha256sum of the source tarball.
 
 To read the documentation, do 'man yb_build'.
 
