@@ -1,0 +1,2 @@
+# depends gmp
+yb_default --lipo nettle http://www.lysator.liu.se/~nisse/archive/nettle-2.7.1.tar.gz bc71ebd43435537d767799e414fce88e521b7278d48c860651216e1fc6555b40

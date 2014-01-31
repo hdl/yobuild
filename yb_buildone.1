@@ -1,0 +1,253 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH YOBUILD 1 "January 10, 2014"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+yb_buildone \- download and build a source tarball
+.SH SYNOPSIS
+.B yb_buildone
+.RI " package" ...
+.PP
+.B yb_list
+.PP
+.B yb_makedebian
+.RI package
+.SH DESCRIPTION
+Yobuild is a trivial portable metabuild system for open source packages.
+It is intended for use by application developers who need a way to build dependencies they can ship with their app.
+.PP
+On MacOSX, it generates tarballs for each package; on Ubuntu, it lets you use debuild to build each package.
+.PP
+.B yb_buildone
+knows how to download and build a number of open source packages from source tarballs.
+.PP
+The resulting built package is stored in the directory outdir in a gzipped tarball named after the package.
+.PP
+For instance, the command "yb_buildone xz" downloads and build the package xz, and creates the file "outdir/xz-5.0.4_64.tar.gz".
+.PP
+yb_list outputs a a list of all the packages yb_buildone knows how to build.
+.PP
+yb_install installs a package built earlier by yb_buildone.  It assumes you have write privileges for the
+PREFIX the packages were built with.
+.PP
+.B yb_makedebian
+generates a Debian source package that builds the given package using yb_buildone.
+It is similar to, but more specialized than,
+.BR dh_make (8).
+.PP
+For instance, the command "yb_makedebian xz" creates the file Makefile and a debian directory; subsequently,
+running the command "debuild -b" will create the package ../yobuilt-xz_0.1_amd64.deb.
+It does not yet generate true Debian source packages, but it could.
+.PP
+.SH RECIPES
+All "yb_buildone xz" does is execute the script /usr/share/yobuild/recipes/xz/xz.recipe.
+Here's that script in all its glory:
+.in +0.5i
+.nf
+#!/bin/sh
+yb_default xz http://tukaani.org/xz/xz-5.0.4.tar.gz \\
+  d67405798dad645965fe51cf4e40c23d1201fb234378d3c44f5a3787142b83b6
+.fi
+.in -0.5i
+.PP
+yb_default is in turn a simple shell script, which at its core just
+calls four standard scripts to download and unpack, patch, and build
+a source tarball, then saves the results as a binary tarball:
+.in +0.5i
+.nf
+.cc ,
+. yb_settings
+,cc .
+rm -rf $YB_BUILDDIR
+mkdir -p $YB_BUILDDIR
+yb_download $2 $3 $4
+cd $YB_BUILDDIR
+DIRNAME=`ls`
+cd $DIRNAME
+yb_patch $1
+yb_auto_build
+yb_package ${DIRNAME}_$YB_WIDTH
+.fi
+.in -0.5i
+.PP
+Recipes don't need to use any of these standard scripts as
+long as they save their results in a tarball in the same way that yb_default does.
+They don't even need to be written as shell scripts; python or ruby would be fine.
+.PP
+.SH EXTENDING YOBUILD
+If the package you want to build doesn't already have a recipe,
+try building it with yb_default, which should 
+handle the most common kinds of open source packages.  e.g.
+.nf
+    yb_default xz http://tukaani.org/xz/xz-5.0.4.tar.gz
+.fi
+If that works, you can enshrine it as a yobuild recipe by creating an executable script
+/usr/share/yobuild/recipes/xz/xz.recipe containing that line.
+.PP
+If patches are required to build your package, place the patches in the directory /usr/share/yobuild/recipes/foo/patches,
+and yb_patch will apply them in alphabetical order.
+.PP
+On the Mac, some packages need the --lipo option to yb_default (and yb_auto_build) to build properly when YB_WIDTH=universal.
+.PP
+If special arguents to configure are required, put them in the environment variable YB_CONFIGURE_ARGS.
+(For --lipo builds, you can also set YB_CONFIGURE_ARGS32 and YB_CONFIGURE_ARGS64.)
+.PP
+If you need to run a special command before configure, put it in the environment variable YB_DEFAULT_BUILD_PRE_CONFIGURE_HOOK.
+.PP
+If you need to run a special command after building, put it in the environment variable YB_DEFAULT_BUILD_PRE_PACKAGE_HOOK.
+.PP
+For the few packages yb_auto_build can't build, the recipe can get
+its hands dirty any way it likes; see /usr/share/yobuild/recipes/boost/boost.recipe for an extreme example.
+.PP
+You can also often find useful tips (and patches) by googling for Homebrew
+or MacPorts recipes for the package in question.
+.PP
+.SH HELPER COMMANDS
+These commands may be used by recipes.
+.TP
+.B yb_settings
+Intended to be sourced with the . (dot) command.  Sets environment variables
+like PREFIX, YB_OUTDIR, YB_WIDTH, etc.
+.TP
+.B yb_default
+[\fI--lipo\fR] \fIpkg\fR \fIurl\fR [\fIsha256sum\fR [\fIrename_to\fR]]
+Given a package name and URL for its source tarball, builds the package and produces a binary tarball.
+(This is a convenience wrapper for yb_download, yb_patch, yb_auto_build, and yb_package.
+See 'yb_default --help' for details.)
+.TP
+.B yb_download
+\fIurl\fR [\fIsha256sum\fR [\fIrename_to\fR]]
+Download the tarball, zipfile, or patch from the given URL and unpack it into YB_BUILDDIR.
+(See 'yb_download --help' for details.)
+.TP
+.B yb_patch
+.RI pkg
+Applies the patches from /usr/share/yobuild/recipes/pkg/patches to the current directory
+in alphabetical order using 'patch -p1'.
+.TP
+.B yb_auto_build
+[\fI--lipo\fR]
+Builds a source tree by running configure (or cmake as appropriate), make, and make install.
+This only handles the most common use cases.
+On the Mac, some packages may need the --lipo option to build universal packages properly.
+(See 'yb_auto_build --help' for details.)
+.TP
+.B yb_package
+\fItarball_name_prefix\fR
+Create a tarball of the package's installed files, ready for unpacking on the target.
+(See 'yb_package --help' for details.)
+.PP
+.SH OPTIONS
+yb_default and yb_auto_build take the following option:
+.TP
+.B --lipo
+When YB_WIDTH=universal, normally yb_default does a single build with
+parammeters -arch i386 -arch x86_64.  If --lipo is given, it instead
+does two separate builds, then welds the binaries together using lipo.
+.PP
+.SH EXAMPLES
+The sample scripts yobuild-osx-example.sh and yobuild-ubu12-example.sh in
+/usr/share/doc/yobuild show how to build a complete (for some
+definition of the word) set of packages on MacOSX and Ubuntu.
+.PP
+.SH ENVIRONMENT
+\fByb\_buildone\fR and \fByb\_auto_build\fR use the following environment variables:
+.TP
+.B PREFIX
+Where the compiled package will live.  Defaults to /opt/yobuild.
+.TP
+.B YB_WIDTH
+Width of resulting binaries.  Values are 32, 64, and universal; the default is 64.  (Only supported on Mac at moment.)
+.PP
+\fByb\_default\fR obeys the following additional environment variable:
+.TP
+.B YB_DEFAULT_BUILD_PRE_PACKAGE_HOOK
+Commands to run after building and before packaging.
+.PP
+\fByb\_auto\_build\fR obeys the following additional environment variables:
+.TP
+.B YB_DEFAULT_BUILD_PRE_CONFIGURE_HOOK
+Commands to run after patching and before configuring.
+.TP
+.B
+YB_CONFIGURE_ARGS
+Arguments to pass to the configure script.
+.TP
+.B
+YB_CONFIGURE_ARGS32
+Additional arguments to pass to the 32 bit run of the configure script when YB_WIDTH=universal and --lipo was given.
+.TP
+.B
+YB_CONFIGURE_ARGS64
+Additional arguments to pass to the 64 bit run of the configure script when YB_WIDTH=universal and --lipo was given.
+.PP
+The following environment settings are used by \fByb\_download\fR:
+.TP
+.B YB_BUILDDIR
+Directory in which to unpack the archive
+.TP
+.B YB_DOWNLOADS
+Where to cache downloaded source tarballs
+.TP
+.B
+YB_LANCACHE
+Will try downloading files by prepending this URL to the file first
+.TP
+.B XDG_CACHE_HOME
+Parent for default value of YB_DOWNLOADS
+.PP
+The following environment settings are used by \fByb\_package\fR:
+.TP
+.B YB_TAR_ARGS
+Additional arguments to pass to tar when archiving the built package.
+.PP
+The following environment settings are used by \fByb\_makedebian\fR:
+.TP
+.B YB_PKGNAME_PREFIX
+The generated Ubuntu package's name will be the value of YB_PKGNAME_PREFIX followed by a dash and the name of the source package.  Defaults to yobuilt.
+.TP
+.B PREFIX
+Where the compiled package will live.  Defaults to /opt/yobuild.
+.TP
+.B DEBEMAIL
+Email address to use in control and changelog entries.  Defaults to $LOGNAME@unknown.
+.TP
+.B DEBFULLNAME
+Your full name, e.g. "Jane Doe", which will appear in the control and changelog entries.  Defaults to the first part of the GECOS field from $LOGNAME's entry in /etc/passwd.
+.PP
+.SH FILES
+.IP "/usr/share/yobuild/recipes/foo/foo.recipe" 4
+Executable script which is executed when 'yb_buildone foo' is run.
+.IP "/usr/share/yobuild/recipes/foo/patches" 4
+Optional directory containing patches to be applied when 'yb_buildone foo' is run.
+.PP
+.SH BUGS
+.PP
+Temporary directories should be named better and cleaned up better.
+.PP
+It doesn't generate real Debian source packages yet.
+.PP
+Most of the dependencies in templates/debian/debian/control should be
+moved into recipes/*/sysdeps.debian.
+.PP
+Not all environment variables are prefixed with a uniform YB_ prefix yet.
+.PP
+Report new bugs to <dank@kegel.com>
+.PP
+.SH AUTHOR
+yobuild was written by Dan Kegel for Oblong Industries, and is released under the MIT license.
+.PP
+This manual page was written by Dan Kegel <dank@kegel.com>.

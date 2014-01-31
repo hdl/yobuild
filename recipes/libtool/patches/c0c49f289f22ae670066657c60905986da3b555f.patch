@@ -1,0 +1,29 @@
+From c0c49f289f22ae670066657c60905986da3b555f Mon Sep 17 00:00:00 2001
+From: Titus von Boxberg <titus@v9g.de>
+Date: Sun, 19 Feb 2012 15:33:48 -0600
+Subject: [PATCH 1/1] Accept clang's -stdlib linker flag.
+
+build-aux/ltmain.m4sh: Don't drop the -stdlib= flag.
+---
+ build-aux/ltmain.m4sh |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
+
+diff --git a/libltdl/config/ltmain.m4sh b/libltdl/config/ltmain.m4sh
+index 5916423..6775bde 100644
+--- a/libltdl/config/ltmain.m4sh
++++ b/libltdl/config/ltmain.m4sh
+@@ -5091,9 +5091,10 @@ func_mode_link ()
+       # -tp=*                Portland pgcc target processor selection
+       # --sysroot=*          for sysroot support
+       # -O*, -flto*, -fwhopr*, -fuse-linker-plugin GCC link-time optimization
++      # -stdlib=*            select c++ std lib with clang
+       -64|-mips[0-9]|-r[0-9][0-9]*|-xarch=*|-xtarget=*|+DA*|+DD*|-q*|-m*| \
+       -t[45]*|-txscale*|-p|-pg|--coverage|-fprofile-*|-F*|@*|-tp=*|--sysroot=*| \
+-      -O*|-flto*|-fwhopr*|-fuse-linker-plugin)
++      -O*|-flto*|-fwhopr*|-fuse-linker-plugin|-stdlib=*)
+         func_quote_for_eval "$arg"
+ 	arg=$func_quote_for_eval_result
+         func_append compile_command " $arg"
+-- 
+1.7.2.5
+

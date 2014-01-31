@@ -1,0 +1,2 @@
+# depends autoconf
+yb_default automake http://ftp.gnu.org/gnu/automake/automake-1.13.4.tar.xz

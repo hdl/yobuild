@@ -1,0 +1,109 @@
+# Mac only
+set -e
+set -x
+. yb_settings
+
+boost_sanity_check() {
+    if test -d $destdir$PREFIX/opt
+    then
+        echo "$destdir$PREFIX/opt exists"
+        exit 1
+    fi
+}
+
+build_boost_single() {
+  bitness="$1"
+  destdir="$2"
+  extra_archflags="$3"
+
+  rm -rf "$destdir"
+
+  boost_sanity_check
+  yb_download http://downloads.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2 fff00023dd79486d444c8e29922f4072e1d451fc5a4d2b6075852ead7f2b7b52
+  cd $YB_BUILDDIR; DIRNAME=`ls`; cd $DIRNAME
+
+  if g++ --version | grep gcc
+  then
+      boost_toolset=darwin
+  else
+      boost_toolset=clang
+  fi
+
+    # Convince boost's build system to set a proper install_name, otherwise apps won't run
+    # See also https://svn.boost.org/trac/boost/ticket/9141
+    sed -i.bak \
+        -e 's,-install_name "$(<:B)$(<:S)",-install_name "'$PREFIX'/lib/$(<:B)$(<:S)",' \
+        tools/build/v2/tools/darwin.jam
+    sed -i.bak \
+        -e 's,-install_name "$(<\[1\]:D=)",-install_name "'$PREFIX'/lib/$(<[1]:D=)",' \
+        tools/build/v2/tools/clang-darwin.jam
+
+  ./bootstrap.sh \
+    architecture=x86 \
+    address-model="$bitness" \
+    --with-toolset=$boost_toolset \
+    threading=multi \
+    --prefix="$destdir" \
+    --with-libraries=filesystem,regex,system,thread || {
+      echo "Failed to configure boost for ${bitness}/${destdir}" 1>&2
+      exit 1
+    }
+
+  boost_sanity_check
+   case $toolchain in
+   default) toolchainlinkflags=""; toolchaincxxflags="";;
+   clangcxx11) toolchainlinkflags=" -stdlib=libc++"; toolchaincxxflags="-std=c++11 -stdlib=libc++";;
+   esac
+
+  boost_sanity_check
+  ./b2 install \
+    --layout=tagged \
+    toolset=$boost_toolset \
+    architecture=x86 \
+    address-model="$bitness" \
+    cxxflags="$toolchaincxxflags ${extra_archflags}" \
+    linkflags="$toolchainlinkflags ${extra_archflags}" \
+    -d+2 || {
+      echo "Failed to build boost for ${bitness}/${destdir}" 1>&2
+      exit 3
+    }
+  boost_sanity_check
+
+  cd "$YB_BUILDDIR"
+  rm -fr "$DIRNAME"
+}
+
+rm -rf $YB_BUILDDIR
+mkdir -p $YB_BUILDDIR
+rm -rf "$DESTDIR$PREFIX"
+mkdir -p "$DESTDIR$PREFIX/bin"
+mkdir -p "$DESTDIR$PREFIX/lib"
+mkdir -p "$DESTDIR$PREFIX/include"
+
+case $YB_WIDTH in
+32) build_boost_single 32 "${DESTDIR}$PREFIX" "-m32" ;;
+64) build_boost_single 64 "${DESTDIR}$PREFIX" "" ;;
+universal)
+  build_boost_single 64 "${DESTDIR}.64" ""
+  build_boost_single 32 "${DESTDIR}.32" "-m32"
+  rsync -a "${DESTDIR}".64/* "${DESTDIR}${PREFIX}"
+  for full in "$DESTDIR".64/lib/* ; do
+    f=`basename "$full"`
+    lipo -create "$DESTDIR".32/lib/"$f" \
+                 "$DESTDIR".64/lib/"$f" \
+                 -output "${DESTDIR}${PREFIX}"/lib/"$f"
+  done
+  rm -fr "${DESTDIR}.32" "${DESTDIR}.64"
+;;
+*) echo "unsupported width $YB_WIDTH"; exit 1;;
+esac
+
+# As on Ubuntu Linux, make libboost_foo a synonym for libboost_foo-mt.
+for lib in "${DESTDIR}${PREFIX}"/lib/libboost*-mt.{a,dylib}
+do
+    lib_without_mt=`echo $lib | sed 's/-mt//'`
+    lib_file=`basename $lib`
+    ln -s $lib_file $lib_without_mt
+done
+
+yb_package boost_1_54_0_$YB_WIDTH

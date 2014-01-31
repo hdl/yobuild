@@ -1,0 +1,16 @@
+# Fixme: Add sanity checking.
+# Should fail if any of the lines
+#  checking for ORC... no
+#  checking for OGG... no
+#  checking for THEORA... no
+#  checking for VORBIS... no
+# occur in the output of configure.
+# On 32 bit mac, should fail if osxvideosrc not built.
+# On Ubuntu, should fail if xvimagesink not built.
+#
+# We disable pango because we build our own glib, but we don't build our own pango yet,
+# and mixing system pango with homebrew glib sounds dangerous.
+# Disable examples because they use system gtk/qt, which doesn't link properly against yobuild glib (which is too new)
+
+YB_CONFIGURE_ARGS="--disable-static --disable-gtk-doc --disable-examples --disable-pango" \
+    yb_default gst-plugins-base http://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.2.2.tar.xz fa90cf21eac0a77f9393100356aef99ae42072c31dc218d3ae2e7f86cd5ced69

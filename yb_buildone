@@ -1,0 +1,77 @@
+#!/bin/sh
+# Copyright (c) 2014 Oblong Industries
+# License: MIT
+#
+# Script to build one or more packages without regard to depenencies
+set -e
+set -x
+
+. yb_settings
+
+SRCDIR=`dirname "$0"`
+SRCDIR=`cd "$SRCDIR"; /bin/pwd`
+
+if test -d "$SRCDIR"/recipes
+then
+    RECIPES="$SRCDIR"/recipes
+else
+    RECIPES=/usr/share/yobuild/recipes
+fi
+
+bs_abort() {
+    echo "Fatal error: $@"
+    exit 1
+}
+
+build_one() {
+    RECIPE=$1
+
+    if test -d "$RECIPES"/$RECIPE
+    then
+        echo Building $RECIPE
+        "$RECIPES"/$RECIPE/$RECIPE.recipe
+        echo Done building $RECIPE
+    else
+	bs_abort "Unknown package $RECIPE"
+    fi
+}
+
+build_many() {
+    set -x
+
+    if ! mkdir -p $PREFIX && ! test -w $PREFIX
+    then
+        echo "Please make sure you own $PREFIX and can write to it."
+        echo "Please do not run this script as root."
+        exit 1
+    fi
+
+    while test "$1"
+    do
+        name=$1
+        # Believe it or not, character ranges in bracket expressions
+        # use ! instead of ^ for inversion in posix shell.
+        case "$name" in
+        *[!-a-zA-Z_0-9]*) bs_abort "Illegal character in $name";;
+        esac
+        build_one $name
+        shift
+    done
+}
+
+usage() {
+    set +x
+    cat << _EOF_
+Script to build common open source packages
+Usage: $0 pkg ...
+_EOF_
+}
+
+case $1 in
+-h|--help)
+    usage; exit 0;;
+""|-*)
+    usage; exit 1;;
+*)
+    build_many $@;;
+esac

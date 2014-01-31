@@ -1,0 +1,9 @@
+# FIXME: https://github.com/mxcl/homebrew/pull/14240 suggests we need several more dependencies for full flavor
+
+export YB_CONFIGURE_ARGS="--without-gnome --disable-tls-check --disable-more-warnings"
+
+yb_default libsoup http://ftp.gnome.org/pub/GNOME/sources/libsoup/2.38/libsoup-2.38.1.tar.xz 71b8923fc7a5fef9abc5420f7f3d666fdb589f43a8c50892d584d58b3c513f9a
+
+# There's also
+#    default_build http://ftp.gnome.org/pub/GNOME/sources/libsoup/2.44/libsoup-2.44.1.tar.xz c532c331dd5f7eb78438867302ed6897a847c82b287ed9347bea8d1937974c1d
+# but it wants sqlite3.

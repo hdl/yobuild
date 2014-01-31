@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+
+%:
+	dh  $@
+
+PREFIX := @PREFIX@
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(PREFIX)/lib --
+
+#override_dh_strip:
+#	echo "Comment out this rule if you don't want debug symbols."

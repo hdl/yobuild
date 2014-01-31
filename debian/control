@@ -1,0 +1,23 @@
+Source: yobuild
+Section: devel
+Priority: extra
+Maintainer: Dan Kegel <dank@oblong.com>
+Build-Depends: autotools-dev,
+    debhelper (>= 7),
+    debsums
+Standards-Version: 3.8.3
+Homepage: http://oblong.com
+
+Package: yobuild
+Architecture: any
+Depends: ${shlibs:Depends},
+    build-essential,
+    dpkg-dev,
+    fakeroot,
+    wget
+Description: Trivial meta-build system
+ The ugly stepchild of jhbuild and debhelper.
+ Kept locked in the basement, brought out only
+ when you need to build very recent releases of things like gstreamer,
+ and want something simpler than jhbuild or cerbero
+ yet feels slightly more debian-ish.

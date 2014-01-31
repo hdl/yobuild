@@ -1,0 +1,2 @@
+#!/bin/sh
+yb_default xz http://tukaani.org/xz/xz-5.0.4.tar.gz d67405798dad645965fe51cf4e40c23d1201fb234378d3c44f5a3787142b83b6

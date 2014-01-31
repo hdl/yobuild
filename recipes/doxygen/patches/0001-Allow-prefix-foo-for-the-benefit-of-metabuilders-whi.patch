@@ -1,0 +1,29 @@
+https://bugzilla.gnome.org/show_bug.cgi?id=722786
+
+From 7a0235765b341cfd4cd7890644bc17e53d2f7433 Mon Sep 17 00:00:00 2001
+From: Dan Kegel <dank@kegel.com>
+Date: Wed, 22 Jan 2014 10:29:36 -0800
+Subject: [PATCH] Allow --prefix=foo for the benefit of metabuilders which rely
+ on a modicum of autoconf compatibility
+
+---
+ configure | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/configure b/configure
+index f712999..69a31b1 100755
+--- a/configure
++++ b/configure
+@@ -55,6 +55,9 @@ f_langs=`ls -1 src/translator_??.h | sed -e 's%src/translator_%%g' | sed -e 's/\
+ 
+ while test -n "$1";  do
+   case $1 in
++    --prefix=*)
++       f_prefix=`echo $1 | sed 's/^--prefix=//'`
++       ;;
+     --prefix | -prefix)
+        shift; f_prefix=$1
+        ;;
+-- 
+1.8.1.2
+

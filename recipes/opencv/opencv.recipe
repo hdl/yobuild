@@ -1,0 +1,4 @@
+# precompiled headers don't work with universal binaries
+export YB_CMAKE_ARGS="-DENABLE_PRECOMPILED_HEADERS=0"
+
+yb_default opencv http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.7/opencv-2.4.7.tar.gz c48d6c735bfa40c76cadcc0106051e095d8b492b05ac7d2cc9647be807dd2a43

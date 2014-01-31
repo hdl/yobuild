@@ -1,0 +1,25 @@
+# See https://github.com/OpenNI/OpenNI2/issues/42
+diff --git a/Include/OpenNI.h b/Include/OpenNI.h
+index 52324b4..9a4f0d8 100644
+--- a/Include/OpenNI.h
++++ b/Include/OpenNI.h
+@@ -83,13 +83,16 @@ typedef struct
+ } YUV422DoublePixel;
+ 
+ /** This special URI can be passed to @ref Device::open() when the application has no concern for a specific device. */
+-#if ONI_PLATFORM != ONI_PLATFORM_WIN32
++#if (ONI_PLATFORM != ONI_PLATFORM_WIN32) && (((__GNUC__ * 100) + __GNUC_MINOR__) >= 406)
+ #pragma GCC diagnostic ignored "-Wunused-variable"
+ #pragma GCC diagnostic push
+-#endif
+ static const char* ANY_DEVICE = NULL;
+-#if ONI_PLATFORM != ONI_PLATFORM_WIN32
+ #pragma GCC diagnostic pop
++#else
++static const char* ANY_DEVICE = NULL;
++inline const char *reference_any_device_to_avoid_compiler_warning() {
++    return ANY_DEVICE;
++}
+ #endif
+ 
+ /**

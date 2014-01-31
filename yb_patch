@@ -1,0 +1,52 @@
+#!/bin/sh
+# Copyright (c) 2014 Oblong Industries
+# License: MIT
+
+set -e
+set -x
+
+SRCDIR=`dirname "$0"`
+SRCDIR=`cd "$SRCDIR"; /bin/pwd`
+
+if test -d "$SRCDIR"/recipes
+then
+    RECIPES="$SRCDIR"/recipes
+else
+    RECIPES=/usr/share/yobuild/recipes
+fi
+
+do_patch() {
+    RECIPE=$1
+    if test -d "$RECIPES"/$RECIPE/patches
+    then
+        for p in "$RECIPES"/$RECIPE/patches/*.patch
+        do
+            echo applying $p to `pwd`
+            patch -b -p1 < "$p"
+        done
+    fi
+}
+
+usage() {
+    set +x
+    cat << _EOF_
+Usage: $0 pkg
+Apply the patches from $RECIPES/pkg/patches to the current directory
+in alphabetical order using 'patch -p1'.
+_EOF_
+}
+
+if test "$2"
+then
+    usage
+    exit 1
+fi
+
+case $1 in
+-h|--help)
+    usage; exit 0;;
+""|-*)
+    usage; exit 1;;
+*)
+    do_patch $1;;
+esac

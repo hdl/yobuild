@@ -1,0 +1,5 @@
+# requires libxml2 flex (flex only to avoid having to hack the flex version check in configure) bison
+# can use system bison and flex
+
+export YB_CONFIGURE_ARGS="--disable-static --disable-gtk-doc"
+yb_default --lipo gstreamer http://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.2.2.tar.xz b9f12137ab663edc6c37429b38ca7911074b9c2a829267fe855d4e57d916a0b6

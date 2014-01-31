@@ -1,0 +1,26 @@
+is_ubuntu() {
+    test -f /etc/issue
+}
+
+is_mac() {
+    test -f /usr/bin/sw_vers
+}
+
+# depends libffi pkgconf gettext xz
+export YB_CONFIGURE_ARGS="--disable-static --disable-gtk-doc"
+
+# dtrace support broken on OSX, see
+# http://trac.macports.org/ticket/30413
+# https://bugzilla.gnome.org/show_bug.cgi?id=622697
+if is_mac
+then
+    YB_CONFIGURE_ARGS="$YB_CONFIGURE_ARGS --disable-dtrace"
+fi
+
+if is_ubuntu
+then
+    # FIXME: fails to build on ubuntu without autoreconf... and our own autoreconf lacks pkg.m4 and others, use platform's copy for now??
+    export YB_DEFAULT_BUILD_PRE_CONFIGURE_HOOK="PATH=/usr/bin:$PATH autoreconf"
+fi
+
+yb_default --lipo glib ftp://ftp.gnome.org/pub/gnome/sources/glib/2.39/glib-2.39.1.tar.xz d08c976f5560693946251361f186e3c9243c8195a95417127c1b1970c8371153

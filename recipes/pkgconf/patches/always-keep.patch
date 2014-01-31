@@ -1,0 +1,54 @@
+--- pkgconf-0.9.3/main.c.old	2013-08-22 21:08:06.000000000 -0700
++++ pkgconf-0.9.3/main.c	2013-10-01 20:35:28.000000000 -0700
+@@ -1,3 +1,5 @@
++#define ALWAYS_KEEP 1
++
+ /*
+  * main.c
+  * main() routine, printer functions
+@@ -517,8 +519,10 @@
+ 	printf("                                    linking to stdout\n");
+ 	printf("  --print-variables                 print all known variables in module to stdout\n");
+ 	printf("  --digraph                         print entire dependency graph in graphviz 'dot' format\n");
++#ifndef ALWAYS_KEEP
+ 	printf("  --keep-system-cflags              keep -I%s entries in cflags output\n", SYSTEM_INCLUDEDIR);
+ 	printf("  --keep-system-libs                keep -L%s entries in libs output\n", SYSTEM_LIBDIR);
++#endif
+ 
+ 	printf("\nreport bugs to <%s>.\n", PACKAGE_BUGREPORT);
+ }
+@@ -535,6 +539,9 @@
+ 	char *required_module_version = NULL;
+ 
+ 	want_flags = 0;
++#ifdef ALWAYS_KEEP
++	want_flags = (PKG_KEEP_SYSTEM_CFLAGS|PKG_KEEP_SYSTEM_LIBS);
++#endif
+ 
+ 	struct pkg_option options[] = {
+ 		{ "version", no_argument, &want_flags, PKG_VERSION|PKG_PRINT_ERRORS, },
+@@ -563,8 +570,10 @@
+ 		{ "libs-only-other", no_argument, &want_flags, PKG_LIBS|PKG_LIBS_ONLY_OTHER|PKG_PRINT_ERRORS, },
+ 		{ "uninstalled", no_argument, &want_flags, PKG_UNINSTALLED, },
+ 		{ "no-uninstalled", no_argument, &want_flags, PKG_NO_UNINSTALLED, },
++#ifndef ALWAYS_KEEP
+ 		{ "keep-system-cflags", no_argument, &want_flags, PKG_KEEP_SYSTEM_CFLAGS, },
+ 		{ "keep-system-libs", no_argument, &want_flags, PKG_KEEP_SYSTEM_LIBS, },
++#endif
+ 		{ "define-variable", required_argument, NULL, 27, },
+ 		{ "exact-version", required_argument, NULL, 28, },
+ 		{ "max-version", required_argument, NULL, 29, },
+@@ -666,11 +675,13 @@
+ 	if ((want_flags & PKG_NO_UNINSTALLED) == PKG_NO_UNINSTALLED || getenv("PKG_CONFIG_DISABLE_UNINSTALLED") != NULL)
+ 		global_traverse_flags |= PKGF_NO_UNINSTALLED;
+ 
++#ifndef ALWAYS_KEEP
+ 	if (getenv("PKG_CONFIG_ALLOW_SYSTEM_CFLAGS") != NULL)
+ 		want_flags |= PKG_KEEP_SYSTEM_CFLAGS;
+ 
+ 	if (getenv("PKG_CONFIG_ALLOW_SYSTEM_LIBS") != NULL)
+ 		want_flags |= PKG_KEEP_SYSTEM_LIBS;
++#endif
+ 
+ 	if ((builddir = getenv("PKG_CONFIG_TOP_BUILD_DIR")) != NULL)
+ 		pkg_tuple_add_global("pc_top_builddir", builddir);

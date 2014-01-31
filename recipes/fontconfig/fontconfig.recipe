@@ -1,0 +1,3 @@
+# depends pkgconf freetype
+YB_CONFIGURE_ARGS="--with-add-fonts=/Library/Fonts,~/Library/Fonts,/usr/X11/share/fonts" \
+    yb_default fontconfig http://www.freedesktop.org/software/fontconfig/release/fontconfig-2.10.95.tar.gz cc7ff3b61c99ec1ab19e3656fd9b90bb9824036b3361031435c45f19b91a80c6

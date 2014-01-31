@@ -1,0 +1,180 @@
+diff --git a/aclocal.m4 b/aclocal.m4
+index 4d4a464..e4fd9bf 100644
+--- a/aclocal.m4
++++ b/aclocal.m4
+@@ -1565,4 +1565,5 @@ m4_include([m4macros/ltoptions.m4])
+ m4_include([m4macros/ltsugar.m4])
+ m4_include([m4macros/ltversion.m4])
+ m4_include([m4macros/lt~obsolete.m4])
++m4_include([m4macros/as-ac-expand.m4])
+ m4_include([acinclude.m4])
+diff --git a/config.h.in b/config.h.in
+index 3751f1b..2ddbabd 100644
+--- a/config.h.in
++++ b/config.h.in
+@@ -833,3 +833,9 @@
+ 
+ /* Define to `unsigned int' if <sys/types.h> does not define. */
+ #undef size_t
++
++/* Location of the dbus machine id file */
++#undef DBUS_MACHINE_ID_FILE
++
++/* Local prefix data directory */
++#undef LOCAL_DATA_DIR
+diff --git a/configure b/configure
+index ba49366..c21189d 100755
+--- a/configure
++++ b/configure
+@@ -687,6 +687,9 @@ GLIB_COMPILE_SCHEMAS
+ GLIB_GENMARSHAL
+ CROSS_COMPILING_FALSE
+ CROSS_COMPILING_TRUE
++DBUS_MACHINE_ID_FILE
++LOCAL_DATA_DIR
++EXPANDED_LOCALSTATEDIR
+ G_LIBS_EXTRA
+ PCRE_WARN_CFLAGS
+ PCRE_REQUIRES
+@@ -27693,6 +27696,80 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext;
+ $as_echo "$have_eilseq" >&6; }
+ 
+ 
++
++  EXP_VAR=EXPANDED_LOCALSTATEDIR
++  FROM_VAR="$localstatedir"
++
++    prefix_save=$prefix
++  exec_prefix_save=$exec_prefix
++
++    if test "x$prefix" = "xNONE"; then
++    prefix="$ac_default_prefix"
++  fi
++    if test "x$exec_prefix" = "xNONE"; then
++    exec_prefix=$prefix
++  fi
++
++  full_var="$FROM_VAR"
++    while true; do
++    new_full_var="`eval echo $full_var`"
++    if test "x$new_full_var" = "x$full_var"; then break; fi
++    full_var=$new_full_var
++  done
++
++    full_var=$new_full_var
++  EXPANDED_LOCALSTATEDIR="$full_var"
++
++
++    prefix=$prefix_save
++  exec_prefix=$exec_prefix_save
++
++
++  EXP_VAR=LOCAL_DATA_DIR
++  FROM_VAR="$datadir"
++
++    prefix_save=$prefix
++  exec_prefix_save=$exec_prefix
++
++    if test "x$prefix" = "xNONE"; then
++    prefix="$ac_default_prefix"
++  fi
++    if test "x$exec_prefix" = "xNONE"; then
++    exec_prefix=$prefix
++  fi
++
++  full_var="$FROM_VAR"
++    while true; do
++    new_full_var="`eval echo $full_var`"
++    if test "x$new_full_var" = "x$full_var"; then break; fi
++    full_var=$new_full_var
++  done
++
++    full_var=$new_full_var
++  LOCAL_DATA_DIR="$full_var"
++
++
++    prefix=$prefix_save
++  exec_prefix=$exec_prefix_save
++
++
++DBUS_MACHINE_ID_FILE=${EXPANDED_LOCALSTATEDIR}/lib/dbus/machine-id
++
++
++cat >>confdefs.h <<_ACEOF
++#define DBUS_MACHINE_ID_FILE "$DBUS_MACHINE_ID_FILE"
++_ACEOF
++
++
++
++
++cat >>confdefs.h <<_ACEOF
++#define LOCAL_DATA_DIR "$LOCAL_DATA_DIR"
++_ACEOF
++
++
++
++
+  if test $cross_compiling = yes; then
+   CROSS_COMPILING_TRUE=
+   CROSS_COMPILING_FALSE='#'
+diff --git a/configure.ac b/configure.ac
+index 1dde875..0e66bd3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -2682,6 +2682,21 @@ int error = EILSEQ;
+ ], have_eilseq=yes, have_eilseq=no);
+ AC_MSG_RESULT($have_eilseq)
+ 
++dnl **************************
++dnl *** Configurable paths ***
++dnl **************************
++
++AS_AC_EXPAND(EXPANDED_LOCALSTATEDIR, "$localstatedir")
++AS_AC_EXPAND(LOCAL_DATA_DIR, "$datadir")
++
++DBUS_MACHINE_ID_FILE=${EXPANDED_LOCALSTATEDIR}/lib/dbus/machine-id
++AC_SUBST(DBUS_MACHINE_ID_FILE)
++AC_DEFINE_UNQUOTED(DBUS_MACHINE_ID_FILE,"$DBUS_MACHINE_ID_FILE",[Location of the dbus machine id file])
++
++AC_SUBST(LOCAL_DATA_DIR)
++AC_DEFINE_UNQUOTED(LOCAL_DATA_DIR,"$LOCAL_DATA_DIR",[Local prefix data directory])
++
++
+ dnl ******************************************************************
+ dnl *** If we are cross-compiling, look for glib-genmarshal and    ***
+ dnl *** glib-compile-schemas in PATH                               ***
+diff --git a/gio/gdbusprivate.c b/gio/gdbusprivate.c
+index 0e5bef2..6d6bacc 100644
+--- a/gio/gdbusprivate.c
++++ b/gio/gdbusprivate.c
+@@ -2101,7 +2101,7 @@ _g_dbus_get_machine_id (GError **error)
+   /* TODO: use PACKAGE_LOCALSTATEDIR ? */
+   ret = NULL;
+   first_error = NULL;
+-  if (!g_file_get_contents ("/var/lib/dbus/machine-id",
++  if (!g_file_get_contents (DBUS_MACHINE_ID_FILE,
+                             &ret,
+                             NULL,
+                             &first_error) &&
+@@ -2111,7 +2111,7 @@ _g_dbus_get_machine_id (GError **error)
+                             NULL))
+     {
+       g_propagate_prefixed_error (error, first_error,
+-                                  _("Unable to load /var/lib/dbus/machine-id or /etc/machine-id: "));
++                                  _("Unable to load " DBUS_MACHINE_ID_FILE " or /etc/machine-id: "));
+     }
+   else
+     {
+diff --git a/gio/xdgmime/xdgmime.c b/gio/xdgmime/xdgmime.c
+index 846be39..eb3bade 100644
+--- a/gio/xdgmime/xdgmime.c
++++ b/gio/xdgmime/xdgmime.c
+@@ -257,7 +257,7 @@ xdg_run_command_on_dirs (XdgDirectoryFunc  func,
+ 
+   xdg_data_dirs = getenv ("XDG_DATA_DIRS");
+   if (xdg_data_dirs == NULL)
+-    xdg_data_dirs = "/usr/local/share/:/usr/share/";
++    xdg_data_dirs = LOCAL_DATA_DIR ":/usr/local/share/:/usr/share/";
+ 
+   ptr = xdg_data_dirs;
+ 

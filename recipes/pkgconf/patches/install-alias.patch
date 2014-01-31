@@ -1,0 +1,11 @@
+# Work around https://github.com/pkgconf/pkgconf/issues/58
+--- pkgconf-0.9.3/Makefile.in.old	2013-10-01 20:09:58.000000000 -0700
++++ pkgconf-0.9.3/Makefile.in	2013-10-01 20:09:40.000000000 -0700
+@@ -30,6 +30,7 @@
+ install:
+ 	mkdir -p $(DESTDIR)$(bindir)
+ 	install -c -m755 $(PROG) $(DESTDIR)$(bindir)/$(PROG)
++	ln -s $(PROG) $(DESTDIR)$(bindir)/pkg-config
+ 	mkdir -p $(DESTDIR)$(datarootdir)/aclocal
+ 	install -c -m644 $(srcdir)/pkg.m4 $(DESTDIR)$(datarootdir)/aclocal/pkg.m4
+ 

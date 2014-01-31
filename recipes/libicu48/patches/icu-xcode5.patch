@@ -1,0 +1,11 @@
+--- icu/source/common/umutex.h.old	2013-11-23 13:55:42.000000000 -0800
++++ icu/source/common/umutex.h	2013-11-23 13:59:35.000000000 -0800
+@@ -26,7 +26,7 @@
+ #endif
+ 
+ #if defined(U_DARWIN)
+-#if defined(__STRICT_ANSI__)
++#if defined(__STRICT_ANSI__) && (!defined(__clang_major__) || (defined(__clang_major__) && __clang_major__ < 5))
+ #define UPRV_REMAP_INLINE
+ #define inline
+ #endif

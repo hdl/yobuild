@@ -1,0 +1,13 @@
+set -e
+set -x
+. yb_settings
+
+rm -rf $YB_BUILDDIR
+mkdir -p $YB_BUILDDIR
+
+yb_download http://downloads.sourceforge.net/project/gmsl/GNU%20Make%20Standard%20Library/v1.1.3/gmsl-1.1.3.tar.gz af474398038e6f1d97d5787a5858925f21b7ff72408944a63270ee61e2f5c938
+
+mkdir -p $DESTDIR$PREFIX/share/gmsl
+
+cp $YB_BUILDDIR/gmsl $YB_BUILDDIR/__gmsl $DESTDIR$PREFIX/share/gmsl
+yb_package gmsl_$YB_WIDTH

@@ -1,0 +1,3 @@
+# Without -fPIC, building gstreamer plugins fails.
+export YB_EXTRA_CFLAGS="-fPIC"
+yb_default srtp https://launchpad.net/ubuntu/+archive/primary/+files/srtp_1.4.5~20130609~dfsg.orig.tar.gz 32083ced5621613a0190e4f0d5e7486aa0deb7d3a8f02d7d8bb45c57d0920584 srtp-1.4.5-20130609

@@ -1,0 +1,260 @@
+# Reported as https://sourceforge.net/p/faac/bugs/188/
+Index: common/mp4v2/isma.cpp
+===================================================================
+RCS file: /cvsroot/faac/faac/common/mp4v2/isma.cpp,v
+retrieving revision 1.2
+diff -d -u -r1.2 isma.cpp
+--- a/common/mp4v2/isma.cpp	25 Jan 2009 01:14:34 -0000	1.2
++++ a/common/mp4v2/isma.cpp	24 Oct 2013 21:26:01 -0000
+@@ -535,7 +535,7 @@
+     delete pVideoEsdProperty;
+ 
+ 	VERBOSE_ISMA(GetVerbosity(),
+-		printf("OD data = "U64" bytes\n", numBytes); MP4HexDump(pBytes, numBytes));
++		printf("OD data = " U64 " bytes\n", numBytes); MP4HexDump(pBytes, numBytes));
+ 
+ 	char* odCmdBase64 = MP4ToBase64(pBytes, numBytes);
+ 
+@@ -803,7 +803,7 @@
+ 	CreateIsmaODUpdateCommandForStream(
+ 		pAudioEsd, pVideoEsd, ppBytes, pNumBytes);
+ 	VERBOSE_ISMA(GetVerbosity(),
+-		printf("After CreateImsaODUpdateCommandForStream len "U64" =\n", *pNumBytes); MP4HexDump(*ppBytes, *pNumBytes));
++		printf("After CreateImsaODUpdateCommandForStream len " U64 " =\n", *pNumBytes); MP4HexDump(*ppBytes, *pNumBytes));
+ 	// return SL config values to 2 (file)
+ 	// return ESID values to 0
+ 	if (pAudioSLConfigPredef) {
+Index: common/mp4v2/mp4atom.cpp
+===================================================================
+RCS file: /cvsroot/faac/faac/common/mp4v2/mp4atom.cpp,v
+retrieving revision 1.4
+diff -d -u -r1.4 mp4atom.cpp
+--- a/common/mp4v2/mp4atom.cpp	4 Jun 2010 21:16:21 -0000	1.4
++++ a/common/mp4v2/mp4atom.cpp	24 Oct 2013 21:26:01 -0000
+@@ -326,7 +326,7 @@
+ 	u_int64_t pos = pFile->GetPosition();
+ 
+ 	VERBOSE_READ(pFile->GetVerbosity(), 
+-		printf("ReadAtom: pos = 0x"X64"\n", pos));
++		printf("ReadAtom: pos = 0x" X64 "\n", pos));
+ 
+ 	u_int64_t dataSize = pFile->ReadUInt32();
+ 
+@@ -355,17 +355,17 @@
+ 	dataSize -= hdrSize;
+ 
+ 	VERBOSE_READ(pFile->GetVerbosity(), 
+-		printf("ReadAtom: type = \"%s\" data-size = "U64" (0x"X64") hdr %u\n", 
++		printf("ReadAtom: type = \"%s\" data-size = " U64 " (0x" X64 ") hdr %u\n", 
+ 		       type, dataSize, dataSize, hdrSize));
+ 
+ 	if (pos + hdrSize + dataSize > pParentAtom->GetEnd()) {
+ 		VERBOSE_ERROR(pFile->GetVerbosity(), 
+-			printf("ReadAtom: invalid atom size, extends outside parent atom - skipping to end of \"%s\" \"%s\" "U64" vs "U64"\n", 
++			printf("ReadAtom: invalid atom size, extends outside parent atom - skipping to end of \"%s\" \"%s\" " U64 " vs " U64 "\n", 
+ 			       pParentAtom->GetType(), type,
+ 			       pos + hdrSize + dataSize, 
+ 			       pParentAtom->GetEnd()));
+ 		VERBOSE_READ(pFile->GetVerbosity(),
+-			     printf("parent %s ("U64") pos "U64" hdr %d data "U64" sum "U64"\n",
++			     printf("parent %s (" U64 ") pos " U64 " hdr %d data " U64 " sum " U64 "\n",
+ 				    pParentAtom->GetType(),
+ 				    pParentAtom->GetEnd(),
+ 				    pos, 
+@@ -432,7 +432,7 @@
+ 
+ 	if (ATOMID(m_type) != 0 && m_size > 1000000) {
+ 		VERBOSE_READ(GetVerbosity(), 
+-			printf("Warning: %s atom size "U64" is suspect\n",
++			printf("Warning: %s atom size " U64 " is suspect\n",
+ 				m_type, m_size));
+ 	}
+ 
+@@ -450,7 +450,7 @@
+ {
+ 	if (m_pFile->GetPosition() != m_end) {
+ 		VERBOSE_READ(m_pFile->GetVerbosity(),
+-			printf("Skip: "U64" bytes\n", m_end - m_pFile->GetPosition()));
++			printf("Skip: " U64 " bytes\n", m_end - m_pFile->GetPosition()));
+ 	}
+ 	m_pFile->SetPosition(m_end);
+ }
+@@ -586,7 +586,7 @@
+ 
+ 		if (m_pFile->GetPosition() > m_end) {
+ 			VERBOSE_READ(GetVerbosity(), 
+-				printf("ReadProperties: insufficient data for property: %s pos 0x"X64" atom end 0x"X64"\n",
++				printf("ReadProperties: insufficient data for property: %s pos 0x" X64 " atom end 0x" X64 "\n",
+ 					m_pProperties[i]->GetName(), 
+ 					m_pFile->GetPosition(), m_end)); 
+ 
+@@ -628,7 +628,7 @@
+ 	    }
+ 	    // otherwise, output a warning, but don't care
+ 	    VERBOSE_WARNING(GetVerbosity(),
+-			    printf("Error: In %s atom, extra "D64" bytes at end of atom\n", 
++			    printf("Error: In %s atom, extra " D64 " bytes at end of atom\n", 
+ 				   m_type, (m_end - position)));
+ 	    for (uint64_t ix = 0; ix < m_end - position; ix++) {
+ 	      (void)m_pFile->ReadUInt8();
+@@ -741,7 +741,7 @@
+ 	m_end = m_pFile->GetPosition();
+ 	m_size = (m_end - m_start);
+   VERBOSE_WRITE(GetVerbosity(), 
+-		printf("end: type %s "U64" "U64" size "U64"\n", m_type, 
++		printf("end: type %s " U64 " " U64 " size " U64 "\n", m_type, 
+ 		       m_start, m_end,
+ 		       m_size));
+ 	//use64 = m_pFile->Use64Bits();
+Index: common/mp4v2/mp4descriptor.cpp
+===================================================================
+RCS file: /cvsroot/faac/faac/common/mp4v2/mp4descriptor.cpp,v
+retrieving revision 1.1
+diff -d -u -r1.1 mp4descriptor.cpp
+--- a/common/mp4v2/mp4descriptor.cpp	27 Jul 2004 08:28:24 -0000	1.1
++++ a/common/mp4v2/mp4descriptor.cpp	24 Oct 2013 21:26:01 -0000
+@@ -81,7 +81,7 @@
+ void MP4Descriptor::ReadHeader(MP4File* pFile)
+ {
+ 	VERBOSE_READ(pFile->GetVerbosity(),
+-		printf("ReadDescriptor: pos = 0x"X64"\n", 
++		printf("ReadDescriptor: pos = 0x" X64 "\n", 
+ 			pFile->GetPosition()));
+ 
+ 	// read tag and length
+Index: common/mp4v2/mp4property.cpp
+===================================================================
+RCS file: /cvsroot/faac/faac/common/mp4v2/mp4property.cpp,v
+retrieving revision 1.3
+diff -d -u -r1.3 mp4property.cpp
+--- a/common/mp4v2/mp4property.cpp	4 Jun 2010 21:16:21 -0000	1.3
++++ a/common/mp4v2/mp4property.cpp	24 Oct 2013 21:26:01 -0000
+@@ -215,11 +215,11 @@
+ 	}
+ 	Indent(pFile, indent);
+ 	if (index != 0) 
+-	  fprintf(pFile, "%s[%u] = "U64" (0x%016"X64F")\n", 
++	  fprintf(pFile, "%s[%u] = " U64 " (0x%016" X64F ")\n", 
+ 		  m_name, index, m_values[index], m_values[index]);
+ 	else
+ 	  fprintf(pFile, 
+-		  "%s = "U64" (0x%016"X64F")\n", 
++		  "%s = " U64 " (0x%016" X64F ")\n", 
+ 		  m_name, m_values[index], m_values[index]);
+ 	fflush(pFile);
+ }
+@@ -256,11 +256,11 @@
+ 	}
+ 	if (index != 0) 
+ 	fprintf(pFile, 
+-		"%s[%u] = "U64" (0x%0*"X64F") <%u bits>\n", 
++		"%s[%u] = " U64 " (0x%0*" X64F ") <%u bits>\n", 
+ 		m_name, index, m_values[index], (int)hexWidth, m_values[index], m_numBits);
+ 	else 
+ 	  fprintf(pFile, 
+-		  "%s = "U64" (0x%0*"X64F") <%u bits>\n", 
++		  "%s = " U64 " (0x%0*" X64F ") <%u bits>\n", 
+ 		  m_name, m_values[index], (int)hexWidth, m_values[index], m_numBits);
+ 	fflush(pFile);
+ }
+Index: common/mp4v2/mp4track.cpp
+===================================================================
+RCS file: /cvsroot/faac/faac/common/mp4v2/mp4track.cpp,v
+retrieving revision 1.3
+diff -d -u -r1.3 mp4track.cpp
+--- a/common/mp4v2/mp4track.cpp	4 Jun 2010 21:16:21 -0000	1.3
++++ a/common/mp4v2/mp4track.cpp	24 Oct 2013 21:26:01 -0000
+@@ -287,7 +287,7 @@
+ 	*pNumBytes = sampleSize;
+ 
+ 	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
+-		printf("ReadSample: track %u id %u offset 0x"X64" size %u (0x%x)\n",
++		printf("ReadSample: track %u id %u offset 0x" X64 " size %u (0x%x)\n",
+ 			m_trackId, sampleId, fileOffset, *pNumBytes, *pNumBytes));
+ 
+ 	bool bufferMalloc = false;
+@@ -305,7 +305,7 @@
+ 			GetSampleTimes(sampleId, pStartTime, pDuration);
+ 
+ 			VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
+-				printf("ReadSample:  start "U64" duration "D64"\n",
++				printf("ReadSample:  start " U64 " duration " D64 "\n",
+ 					(pStartTime ? *pStartTime : 0), 
+ 					(pDuration ? *pDuration : 0)));
+ 		}
+@@ -313,7 +313,7 @@
+ 			*pRenderingOffset = GetSampleRenderingOffset(sampleId);
+ 
+ 			VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
+-				printf("ReadSample:  renderingOffset "D64"\n",
++				printf("ReadSample:  renderingOffset " D64 "\n",
+ 					*pRenderingOffset));
+ 		}
+ 		if (pIsSyncSample) {
+@@ -412,7 +412,7 @@
+ 	}
+ 
+ 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
+-		printf("duration "U64"\n", duration));
++		printf("duration " U64 "\n", duration));
+ 
+ 	if ((m_isAmr == AMR_TRUE) &&
+ 		(m_curMode != curMode)) {
+@@ -461,7 +461,7 @@
+ 	m_pFile->WriteBytes(m_pChunkBuffer, m_chunkBufferSize);
+ 
+ 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
+-		printf("WriteChunk: track %u offset 0x"X64" size %u (0x%x) numSamples %u\n",
++		printf("WriteChunk: track %u offset 0x" X64 " size %u (0x%x) numSamples %u\n",
+ 			m_trackId, chunkOffset, m_chunkBufferSize, 
+ 			m_chunkBufferSize, m_chunkSamples));
+ 
+@@ -1495,7 +1495,7 @@
+ 	*ppChunk = (u_int8_t*)MP4Malloc(*pChunkSize);
+ 
+ 	VERBOSE_READ_SAMPLE(m_pFile->GetVerbosity(),
+-		printf("ReadChunk: track %u id %u offset 0x"X64" size %u (0x%x)\n",
++		printf("ReadChunk: track %u id %u offset 0x" X64 " size %u (0x%x)\n",
+ 			m_trackId, chunkId, chunkOffset, *pChunkSize, *pChunkSize));
+ 
+ 	u_int64_t oldPos = m_pFile->GetPosition(); // only used in mode == 'w'
+@@ -1529,7 +1529,7 @@
+ 	m_pChunkOffsetProperty->SetValue(chunkOffset, chunkId - 1);
+ 
+ 	VERBOSE_WRITE_SAMPLE(m_pFile->GetVerbosity(),
+-		printf("RewriteChunk: track %u id %u offset 0x"X64" size %u (0x%x)\n",
++		printf("RewriteChunk: track %u id %u offset 0x" X64 " size %u (0x%x)\n",
+ 			m_trackId, chunkId, chunkOffset, chunkSize, chunkSize)); 
+ }
+ 
+@@ -1766,8 +1766,8 @@
+ 			}
+ 
+ 			VERBOSE_EDIT(m_pFile->GetVerbosity(),
+-				printf("GetSampleIdFromEditTime: when "U64" "
+-					"sampleId %u start "U64" duration "D64"\n", 
++				printf("GetSampleIdFromEditTime: when " U64 " "
++					"sampleId %u start " U64 " duration " D64 "\n", 
+ 					editWhen, sampleId, 
+ 					editSampleStartTime, editSampleDuration));
+ 
+Index: common/mp4v2/mpeg4ip.h
+===================================================================
+RCS file: /cvsroot/faac/faac/common/mp4v2/mpeg4ip.h,v
+retrieving revision 1.7
+diff -d -u -r1.7 mpeg4ip.h
+--- a/common/mp4v2/mpeg4ip.h	4 Jun 2010 21:16:21 -0000	1.7
++++ a/common/mp4v2/mpeg4ip.h	24 Oct 2013 21:26:01 -0000
+@@ -151,9 +151,9 @@
+ /*****************************************************************************
+  *             Generic type includes used in the whole package               *
+  *****************************************************************************/
+-#define D64  "%"D64F
+-#define U64  "%"U64F
+-#define X64 "%"X64F
++#define D64  "%" D64F
++#define U64  "%" U64F
++#define X64  "%" X64F
+ 
+ #define M_LLU TO_U64(1000)
+ #define M_64 TO_U64(1000)

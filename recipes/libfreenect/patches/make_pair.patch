@@ -1,0 +1,7 @@
+# https://github.com/OpenKinect/libfreenect/issues/339
+--- a/wrappers/cpp/libfreenect.hpp.orig	2013-03-05 17:06:20.000000000 -0800
++++ b/wrappers/cpp/libfreenect.hpp	2013-03-05 17:09:21.000000000 -0800
+202c202
+< 			m_devices.insert(std::make_pair<int, FreenectDevice*>(_index, device));
+---
+> 			m_devices.insert(std::make_pair (_index, device));

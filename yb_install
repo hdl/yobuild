@@ -1,0 +1,44 @@
+#!/bin/sh
+# Copyright 2014 Oblong, Inc
+# License: MIT
+#
+# Install tarball $YB_OUTDIR/$$name.tar.gz
+
+set -e
+set -x
+
+#--------------- Default Values ----------------------------
+
+YB_OUTDIR=${YB_OUTDIR:-outdir}
+YB_OUTDIR=`cd $YB_OUTDIR; pwd`
+
+#--------------- Functions ----------------------------
+
+do_install() {
+    for pkg in $*
+    do
+        eval tar -C / -xzf $YB_OUTDIR/$pkg*.tar.gz
+    done
+}
+
+usage() {
+    set +x
+    cat << _EOF_
+Usage: $0 name ...
+Install given prebuilt packages.
+Rather than running this as root, take ownership of PREFIX first.
+
+Environment variables which may be overridden:
+YB_OUTDIR ($YB_OUTDIR) - directory prebuilt packages are unpacked from
+_EOF_
+}
+
+case $1 in
+-h|--help)
+    usage; exit 0;;
+""|-*)
+    usage; exit 1;;
+*)
+    do_install $*;;
+esac
+

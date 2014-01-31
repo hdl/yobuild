@@ -1,0 +1,147 @@
+set -e
+set -x
+. yb_settings
+
+rm -rf $YB_BUILDDIR
+mkdir -p $YB_BUILDDIR
+
+is_mac() {
+    test -d "$HOME/Library/Caches"
+}
+
+do_OpenNI2() {
+    if is_mac
+    then
+        case $YB_WIDTH in
+        32|64) echo "OpenNI2 only builds in universal mode.  We could probably patch it to not do that if we wanted."; return;;
+        esac
+    fi
+
+    pkg_ver=2.2.0.30
+    pkg_commit=5b88c95e4f8d19b95713e3c873c7d07e48e5605b
+
+    rm -rf "$YB_BUILDDIR"
+    mkdir -p "$YB_BUILDDIR"
+    mkdir -p "$DESTDIR$PREFIX/bin"
+    mkdir -p "$DESTDIR$PREFIX/lib"
+    mkdir -p "$DESTDIR$PREFIX/include"
+
+    cd "$YB_BUILDDIR"
+    git clone https://github.com/OpenNI/OpenNI2.git OpenNI2-$pkg_ver
+    DIRNAME=`ls`; cd $DIRNAME
+    git reset --hard $pkg_commit
+    yb_patch openni2
+
+    # This should be a patch, but then we wouldn't be able to set prefix at runtime
+    sed -i.bak 's,ONI_DEFAULT_DRIVERS_REPOSITORY = "OpenNI2",ONI_DEFAULT_DRIVERS_REPOSITORY = "'$PREFIX'/lib/OpenNI2",' Source/Core/OniContext.cpp
+
+    # ALLOW_WARNINGS to work around warning
+    # DDK/XnPixelStream.h:135:9: error: private field 'm_bAllowCustomResolutions' is not used [-Werror,-Wunused-private-field]
+    # Alas, this uses mac libtool, so if gnu libtool is on the path as 'libtool', build will fail.  (On Mac, gnu libtool has to be called glibtool.)
+    mkdir blahbin
+    ln -s /usr/bin/libtool blahbin
+    # LDFLAGS needed here during universal to keep build from finding macports/homebrew libusb, which is not universal?
+    # Passing universal options in CFLAGS just interferes with OpenNI's default universal build
+    # Override these via env rather than commandline, else they nuke other needed definitions
+    HEADERPAD=""
+    if is_mac
+    then
+        HEADERPAD="-headerpad_max_install_names"
+    fi
+    CFLAGS="-I $PREFIX/include" LDFLAGS="$HEADERPAD -L$PREFIX/lib" PATH=`pwd`/blahbin:$PATH make ALLOW_WARNINGS=1 release
+    rm -rf blahbin
+
+    builtdir=Packaging/OpenNI-*
+
+    # Remove duplicate cruft
+    rm -f $builtdir/Tools/libOpenNI2.*{dylib,so}
+    rm -rf $builtdir/Tools/OpenNI2
+    rm -f $builtdir/Samples/Bin/libOpenNI2.*{dylib,so}
+    rm -rf $builtdir/Samples/Bin/OpenNI2
+
+    # Install runtime libraries
+    if is_mac
+    then
+        cp $builtdir/Redist/libOpenNI2.*dylib $DESTDIR$PREFIX/lib
+    else
+        cp $builtdir/Redist/libOpenNI2.*so* $DESTDIR$PREFIX/lib
+    fi
+    cp -a $builtdir/Redist/OpenNI2 $DESTDIR$PREFIX/lib
+
+    # Install sample binaries
+    cp $builtdir/Samples/Bin/ClosestPointViewer $DESTDIR$PREFIX/bin
+    cp $builtdir/Samples/Bin/EventBasedRead $DESTDIR$PREFIX/bin
+    cp $builtdir/Samples/Bin/MWClosestPointApp $DESTDIR$PREFIX/bin
+    if is_mac
+    then
+        cp $builtdir/Samples/Bin/libMWClosestPoint.dylib $DESTDIR$PREFIX/lib
+    else
+        cp $builtdir/Samples/Bin/libMWClosestPoint.so* $DESTDIR$PREFIX/lib
+    fi
+    cp $builtdir/Samples/Bin/MultiDepthViewer $DESTDIR$PREFIX/bin
+    cp $builtdir/Samples/Bin/MultipleStreamRead $DESTDIR$PREFIX/bin
+    cp $builtdir/Samples/Bin/SimpleRead $DESTDIR$PREFIX/bin
+    cp $builtdir/Samples/Bin/SimpleViewer $DESTDIR$PREFIX/bin
+
+    # Install tools binaries
+    cp $builtdir/Tools/NiViewer $DESTDIR$PREFIX/bin
+
+    # Install development files
+    mkdir -p $DESTDIR$PREFIX/include/openni2
+    cp -a $builtdir/Include/* $DESTDIR$PREFIX/include/openni2
+    # Create .pc file
+    mkdir -p $DESTDIR$PREFIX/lib/pkgconfig
+    cat > $DESTDIR$PREFIX/lib/pkgconfig/openni2.pc <<_EOF_
+prefix=$PREFIX
+_EOF_
+    cat >> $DESTDIR$PREFIX/lib/pkgconfig/openni2.pc <<'_EOF_'
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include/openni2
+
+Name: OpenNI2
+Description: A general driver for gesture-sensing cameras.
+_EOF_
+    cat >> $DESTDIR$PREFIX/lib/pkgconfig/openni2.pc <<_EOF_
+Version: $pkg_ver
+_EOF_
+    cat >> $DESTDIR$PREFIX/lib/pkgconfig/openni2.pc <<'_EOF_'
+Cflags: -I${includedir}
+Libs: -L${libdir} -lOpenNI2 -L${libdir}/OpenNI2/Drivers -lDummyDevice -lOniFile -lPS1080
+_EOF_
+
+    if is_mac
+    then
+    # Fix install_name
+    # FIXME: rearrange deliverables into traditional include, lib, and bin directories... and fix our packages that use this to expect them there.
+    for file in `cd $DESTDIR$PREFIX; find . -name '*.dylib'`
+    do
+        f=`echo $file | sed 's,^\./,,'`
+        #echo Before:
+        #otool -D $DESTDIR$PREFIX/$f
+        install_name_tool -id $PREFIX/$f $DESTDIR$PREFIX/$f
+        echo After:
+        otool -D $DESTDIR$PREFIX/$f
+    done
+    for file in `cd $DESTDIR$PREFIX; find . -type f | xargs file | egrep 'Mach-O|current ar archive' | sed 's/:.*//;s/ (for.*//' | sort -u`
+    do
+        f=`echo $file | sed 's,^\./,,'`
+        #echo Before:
+        #otool -L $DESTDIR$PREFIX/$f
+        for lib in `otool -L $DESTDIR$PREFIX/$f | awk '/x64-Release/ {print $1}'`
+        do
+            libfile=`basename $lib`
+            case $lib in
+            *Drivers*) install_name_tool -change $lib $PREFIX/lib/OpenNI2/Drivers/$libfile $DESTDIR$PREFIX/$f;;
+            *)         install_name_tool -change $lib $PREFIX/lib/$libfile $DESTDIR$PREFIX/$f;;
+            esac
+        done
+        echo After:
+        otool -L $DESTDIR$PREFIX/$f
+    done
+    fi
+
+    yb_package ${DIRNAME}_$YB_WIDTH
+}
+
+do_OpenNI2

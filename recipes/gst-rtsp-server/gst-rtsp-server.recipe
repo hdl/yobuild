@@ -1,0 +1,9 @@
+export YB_CONFIGURE_ARGS="--disable-static --disable-gtk-doc"
+
+# Lipo_build doesn't know git yet, so build from a tarball of a git clone.
+# This project uses git submodules, so if we want to build without network,
+# we'll have to clone the submodule(s) and patch the tarball to point to them.
+
+export YB_DEFAULT_BUILD_PRE_CONFIGURE_HOOK="sh autogen.sh $YB_CONFIGURE_ARGS; make distclean"
+
+yb_default --lipo gst-rtsp_server http://obdumper.oblong.com/dank/gst-rtsp-server-0.10.8-612-g43ec4e7.tgz

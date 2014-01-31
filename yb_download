@@ -1,0 +1,126 @@
+#!/bin/sh
+# Copyright (c) 2014 Oblong Industries
+# License: MIT
+#
+# Script to download and unpack a source package into $YB_BUILDDIR
+set -e
+set -x
+
+is_mac() {
+    test -d "$HOME/Library/Caches"
+}
+
+bs_abort() {
+    echo "Fatal error: $@"
+    exit 1
+}
+
+# Download a file.  If it's a tarball or zipfile, unpack it, too.
+# Usage:
+# do_download url [sha256sum [what-to-name-directory]]
+do_download() {
+    url=$1
+    sha256=$2
+    rename="$3"
+    mkdir -p "$YB_BUILDDIR"
+    file=`echo $url | sed 's,.*/,,'`
+
+    # First try to get it from our cache
+    if ! test -f "$YB_DOWNLOADS/$file"
+    then
+        # wget won't retry on dns failure, https://bugzilla.redhat.com/show_bug.cgi?id=202956#c6
+        # so give DNS 60 seconds to recover, then try one last time.
+        if ! wget -P "$YB_DOWNLOADS" $YB_LANCACHE/$file
+        then
+            echo "Download from cache failed with $?, trying upstream"
+            if ! wget -P "$YB_DOWNLOADS" $url
+            then
+                echo "Download from upstream failed, retrying with delay"
+                sleep 60
+                # This also works around https://savannah.gnu.org/bugs/?40037
+                if ! wget -P "$YB_DOWNLOADS" $url
+                then
+                    bs_abort "could not download $url"
+                fi
+            fi
+        fi
+    fi
+    if ! test -f "$YB_DOWNLOADS/$file"
+    then
+        bs_abort bug
+    fi
+
+    sum=`shasum -a 256 "$YB_DOWNLOADS/$file" | awk '{print $1}'`
+    if test "$sha256" && test "$sum" != "$sha256"
+    then
+        bs_abort "Expected sha256 $sha256, got $sum"
+        # FIXME: delete and retry once
+    fi
+
+    # Because of libarchive bug 335, can't do uncompression and then pipe to tar and get an exit status,
+    # so with bsdtar, tend to have it do all the decompression.
+    case "$file" in
+    *.tgz|*.tar.gz) tar -C "$YB_BUILDDIR" -xzf "$YB_DOWNLOADS/$file";;
+    *.tar.bz2) tar -C "$YB_BUILDDIR" -xjf "$YB_DOWNLOADS/$file";;
+    *.tar.xz) tar -C "$YB_BUILDDIR" -xf "$YB_DOWNLOADS/$file";;
+    *.tar.zip) gzcat "$YB_DOWNLOADS/$file" | tar -C "$YB_BUILDDIR" -xf -;;   # FIXME: doesn't abort with bsdtar if file invalid
+    *.zip) unzip -o "$YB_DOWNLOADS/$file" -d "$YB_BUILDDIR";;
+    *.patch) ;;
+    *) echo "what is a $file"; exit 1;;
+    esac
+
+    if test "$rename"
+    then
+        mv "$YB_BUILDDIR"/* "$YB_BUILDDIR"/"$rename"
+    fi
+}
+
+#--------------- Global settings ----------------------------
+
+# Where application installers are cached
+# See http://standards.freedesktop.org/basedir-spec/latest/ar01s03.html
+if is_mac
+then
+    XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/Library/Caches}"
+else
+    XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+fi
+
+YB_DOWNLOADS="${YB_DOWNLOADS:-$XDG_CACHE_HOME/yobuild}"
+YB_LANCACHE=${YB_LANCACHE:-http://yobuild/mirror}
+
+if ! test "$YB_BUILDDIR"
+then
+    bs_abort "You must set YB_BUILDDIR before calling yb_download"
+fi
+
+usage() {
+    set +x
+    cat << _EOF_
+Download and unpack a source package into $$YB_BUILDDIR
+Usage: $0 url [sha256sum [NEWNAME]]
+
+url must be the location of a .tgz, .tar.gz, .tar.bz2, .tar.xz, .tar.zip, .zip, or .patch file
+If NEWNAME is given, the download is assumed to unpack to a single top level file/directory,
+which is then renamed to NEWNAME.
+
+Environment variables which must be set:
+YB_BUILDDIR ($YB_BUILDDIR) - directory in which to unpack the given archive
+
+Environment variables which may be overridden:
+YB_DOWNLOADS ($YB_DOWNLOADS) - where to cache downloaded source tarballs
+YB_LANCACHE ($YB_LANCACHE) - will try downloading files from here first
+XDG_CACHE_HOME ($XDG_CACHE_HOME) - parent for default value of YB_DOWNLOADS
+_EOF_
+}
+
+#--------------- Main ----------------------------
+
+case $1 in
+-h|--help)
+    usage; exit 0;;
+""|-*)
+    usage; exit 1;;
+*)
+    do_download $1 $2 $3
+esac

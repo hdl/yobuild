@@ -1,0 +1,2 @@
+YB_CONFIGURE_ARGS="--disable-curses" \
+    yb_default gettext http://ftp.gnu.org/gnu/gettext/gettext-0.18.2.tar.gz 516a6370b3b3f46e2fc5a5e222ff5ecd76f3089bc956a7587a6e4f89de17714c

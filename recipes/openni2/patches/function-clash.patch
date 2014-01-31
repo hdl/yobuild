@@ -1,0 +1,31 @@
+# See https://github.com/OpenNI/OpenNI2/issues/41
+
+--- OpenNI2-2.0.0.30/Source/Drivers/PS1080/PS1080Console/PS1080Console.cpp.old	2013-09-25 11:35:17.000000000 -0700
++++ OpenNI2-2.0.0.30/Source/Drivers/PS1080/PS1080Console/PS1080Console.cpp	2013-09-25 11:35:49.000000000 -0700
+@@ -137,7 +137,7 @@
+ 	return false;
+ }
+ 
+-bool Version(openni::Device& Device, vector<string>& /*Command*/)
++bool PrintVersion(openni::Device& Device, vector<string>& /*Command*/)
+ {
+ 	openni::Status rc = Device.getProperty(XN_MODULE_PROPERTY_VERSION, &g_DeviceVersion);
+ 	if (rc != openni::STATUS_OK)
+@@ -1673,7 +1673,7 @@
+ 	}
+ 
+ 	vector<string> DummyCommand;
+-	Version(Device, DummyCommand);
++	PrintVersion(Device, DummyCommand);
+ 
+ 	RegisterCB("exit", &byebye, "Exit interactive mode");
+ 	RegisterMnemonic("bye", "exit");
+@@ -1694,7 +1694,7 @@
+ 	RegisterCB("script", &Script, "Run in batch mode");
+ 	RegisterMnemonic("-s", "script");
+ 
+-	RegisterCB("Version", &Version, "Get version");
++	RegisterCB("Version", &PrintVersion, "Get version");
+ 
+ 	RegisterCB("FileList", &FileList, "Get File List");
+ 	RegisterMnemonic("dir", "FileList");

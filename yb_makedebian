@@ -1,0 +1,106 @@
+#!/bin/sh
+# Copyright (c) 2014 Oblong Industries
+# License: MIT
+#
+if test $# -ne 1
+then
+    echo Usage: $0 pkg
+    echo Run once to generate a debian directory that knows how to build the given pkg using yobuild
+    exit 1
+fi
+
+set -e
+set -x
+srcdir="`dirname "$0"`"
+srcdir="`cd "$srcdir"; pwd`"
+
+pkg="$1"
+
+g_get_real_name() {
+    # FIXME: handle sites that use NIS or LDAP
+    getent passwd $LOGNAME | cut -d : -f 5 | cut -d , -f 1
+}
+
+# Debian package names are always lower-cased
+YB_PKG=`echo $pkg | tr A-Z a-z`
+YB_UPKG=`echo $pkg`
+
+# Configuration common to all packages
+YB_EMAIL=${DEBEMAIL:-$LOGNAME@unknown}
+YB_FULLNAME=${DEBFULLNAME:-`g_get_real_name`}
+YB_PKGNAME_PREFIX=${YB_PKGNAME_PREFIX:-yobuilt}
+YB_PKGNAME_VERSION=${YB_PKGNAME_VERSION:-0.1}
+YB_DATE=`date -R`
+PREFIX=${PREFIX:-/opt/yobuild}
+
+if test -d $pkg/debian
+then
+    echo Error: $pkg/debian directory already exists
+    exit 1
+fi
+if test -d $pkg/Makefile
+then
+    echo Error: $pkg/Makefile already exists
+    exit 1
+fi
+# we use , as a sed delimiter
+for s in "$srcdir" "$YB_PKG" "$YB_PKGNAME_PREFIX" "$PREFIX" "$YB_FULLNAME" "$YB_EMAIL"
+do
+    case "$s" in
+    *,*) echo "Sorry, but you can't run this script because it can't handle the , in '$s'"; exit 1;;
+    esac
+done
+
+if test -d "$srcdir"/templates/debian
+then
+    TEMPLATES="$srcdir"/templates
+else
+    TEMPLATES=/usr/share/yobuild/templates
+fi
+
+if test -d "$SRCDIR"/recipes
+then
+    RECIPES="$SRCDIR"/recipes
+else
+    RECIPES=/usr/share/yobuild/recipes
+fi
+
+dir=$YB_PKGNAME_PREFIX-$YB_PKG-$YB_PKGNAME_VERSION
+mkdir -p $dir/debian
+for f in "$TEMPLATES"/debian/Makefile "$TEMPLATES"/debian/debian/*
+do
+    localf=`echo $f | sed "s,$TEMPLATES/debian,$dir,"`
+    sed \
+        -e "s,@PREFIX@,$PREFIX,g" \
+        -e "s/@YB_DATE@/${YB_DATE}/g" \
+        -e "s,@YB_EMAIL@,$YB_EMAIL,g" \
+        -e "s,@YB_FULLNAME@,$YB_FULLNAME,g" \
+        -e "s,@YB_PKGNAME_PREFIX@,$YB_PKGNAME_PREFIX,g" \
+        -e "s,@YB_PKGNAME_VERSION@,$YB_PKGNAME_VERSION,g" \
+        -e "s,@YB_PKG@,$YB_PKG,g" \
+        -e "s,@YB_UPKG@,$YB_UPKG,g" \
+    < "$f" > $localf
+done
+
+# Expand the multiline field YB_DEPS specially
+pivot=`grep -n @YB_DEPS@ < $dir/debian/control | sed 's/:.*//'`
+headerlen=`expr $pivot - 1`
+len=`wc -l < $dir/debian/control`
+footerlen=`expr $len - $pivot`
+head -n $headerlen < $dir/debian/control > $dir/debian/control.tmp
+if test -f "$RECIPES"/$pkg/deps.debian
+then
+    # System dependencies
+    sed 's/^/  /;s/$/,/' < "$RECIPES"/$pkg/deps.debian >> $dir/debian/control.tmp
+fi
+# Hmm.  deps are ambiguous.  yobuild xz is needed for glib on mac, but not on ubuntu.  FIXME
+if test -f "$RECIPES"/$pkg/sysdeps.debian
+then
+    sed 's/^/  /;s/$/,/' < "$RECIPES"/$pkg/sysdeps.debian >> $dir/debian/control.tmp
+fi
+tail -n $footerlen < $dir/debian/control >> $dir/debian/control.tmp
+mv $dir/debian/control.tmp $dir/debian/control
+
+find $dir -type f | xargs chmod 644
+find $dir -type d | xargs chmod 755
+chmod 755 $dir/debian/rules

@@ -1,0 +1,72 @@
+# Work around https://github.com/pkgconf/pkgconf/issues/56
+# Needs review
+From 549c12c87c38182ffec4b51002334e856c1e7c98 Mon Sep 17 00:00:00 2001
+From: Dan Kegel <dank@oblong.com>
+Date: Wed, 2 Oct 2013 11:25:10 -0700
+Subject: [PATCH] Add test for multiple frameworks, hacky fix
+
+---
+ fragment.c      | 13 +++++++++++--
+ main.c          |  7 ++++++-
+ tests/run.sh.in |  2 ++
+ 3 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/fragment.c b/fragment.c
+index 6832e0d..784b9c1 100644
+--- a/fragment.c
++++ b/fragment.c
+@@ -141,8 +141,17 @@ pkg_fragment_parse(pkg_list_t *list, pkg_list_t *vars, const char *value)
+ 
+ 	pkg_argv_split(repstr, &argc, &argv);
+ 
+-	for (i = 0; i < argc; i++)
+-		pkg_fragment_add(list, argv[i]);
++	for (i = 0; i < argc; i++) {
++		if ((i < argc-1) && !strncmp(argv[i], "-framework", 10)) {
++			/* must treat -framework X as a single word */
++			char buf[20000];
++			sprintf(buf, "%s=%s", argv[i], argv[i+1]);
++			pkg_fragment_add(list, buf);
++			i++;
++		} else {
++			pkg_fragment_add(list, argv[i]);
++		}
++	}
+ 
+ 	pkg_argv_free(argv);
+ 	free(repstr);
+diff --git a/main.c b/main.c
+index 59d6d53..0cd7191 100644
+--- a/main.c
++++ b/main.c
+@@ -82,8 +82,13 @@ print_fragment(pkg_fragment_t *frag)
+ 
+ 	if (frag->type)
+ 		printf("-%c%s ", frag->type, frag->data);
+-	else
++	else if (strncmp(frag->data, "-framework=", 10))
++		printf("%s ", frag->data);
++	else {
++		char *s = strchr(frag->data, '=');
++		if (s) *s = ' ';
+ 		printf("%s ", frag->data);
++	}
+ }
+ 
+ static void
+diff --git a/tests/run.sh.in b/tests/run.sh.in
+index 056f2b7..43c2111 100644
+--- a/tests/run.sh.in
++++ b/tests/run.sh.in
+@@ -225,6 +225,8 @@ run_test "PKG_CONFIG_PATH='${selfdir}/lib1' ${1} --libs framework-1" \
+ 	"-F/usr/lib -framework framework-1"
+ run_test "PKG_CONFIG_PATH='${selfdir}/lib1' ${1} --libs framework-2" \
+ 	"-F/usr/lib -framework framework-2 -framework framework-1"
++run_test "PKG_CONFIG_PATH='${selfdir}/lib1' ${1} --libs framework-1 framework-2" \
++	"-F/usr/lib -framework framework-1 -framework framework-2"
+ 
+ run_test "PKG_CONFIG_PATH='${selfdir}/lib1' ${1} --exists --print-errors 'foo > 0.6.0 foo < 0.8.0'; echo \$?" \
+ 	'1'
+-- 
+1.7.12.4 (Apple Git-37)
+

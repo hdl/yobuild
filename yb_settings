@@ -1,0 +1,32 @@
+# Recipes may source this to get standard settings
+
+# PREFIX is where packages will live once finally installed
+PREFIX=${PREFIX:-/opt/yobuild}
+export PREFIX
+
+# YB_BUILDDIR contains all the temporary directories for a build, e.g.
+# the source for hello version 1.0 is in YB_BUILDDIR/hello-1.0
+YB_BUILDDIR=${YB_BUILDDIR:-btmp}
+export YB_BUILDDIR
+
+# DESTDIR is where the package will be temporarily installed to
+DESTDIR=${DESTDIR:-${YB_BUILDDIR}/yobuild.tmp}
+export DESTDIR
+
+# YB_OUTDIR is where the final binary tarballs are stored
+YB_OUTDIR=${YB_OUTDIR:-outdir}
+export YB_OUTDIR
+
+# Kind of binaries to build: 32, 64, or on mac, universal
+YB_WIDTH=${YB_WIDTH:-64}
+export YB_WIDTH
+
+# Create output directories and make paths absolute
+mkdir -p $YB_BUILDDIR
+YB_BUILDDIR=`cd $YB_BUILDDIR; pwd`
+
+mkdir -p $DESTDIR
+DESTDIR=`cd $DESTDIR; pwd`
+
+mkdir -p $YB_OUTDIR
+YB_OUTDIR=`cd $YB_OUTDIR; pwd`

@@ -1,0 +1,14 @@
+# Posted as https://mailman.videolan.org/pipermail/x264-devel/2014-January/010369.html
+diff --git a/configure b/configure
+index 0177cfc..3eb416a 100755
+--- a/configure
++++ b/configure
+@@ -1204,7 +1204,7 @@ if [ "$shared" = "yes" ]; then
+     elif [ "$SYS" = "MACOSX" ]; then
+         echo "SOSUFFIX=dylib" >> config.mak
+         echo "SONAME=libx264.$API.dylib" >> config.mak
+-        echo "SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name \$(DESTDIR)\$(libdir)/\$(SONAME) $SOFLAGS" >> config.mak
++        echo "SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -headerpad_max_install_names -install_name \$(libdir)/\$(SONAME) $SOFLAGS" >> config.mak
+     elif [ "$SYS" = "SunOS" ]; then
+         echo "SOSUFFIX=so" >> config.mak
+         echo "SONAME=libx264.so.$API" >> config.mak

@@ -1,0 +1,2 @@
+YB_CONFIGURE_ARGS32="ABI=32" YB_CONFIGURE_ARGS64="ABI=64" \
+yb_default --lipo gmp https://ftp.gnu.org/gnu/gmp/gmp-5.1.3.tar.xz dee2eda37f4ff541f30019932db0c37f6f77a30ba3609234933b1818f9b07071

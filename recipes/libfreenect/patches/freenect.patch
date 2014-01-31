@@ -1,0 +1,15 @@
+--- a/src/CMakeLists.txt.orig	2013-03-05 17:06:20.000000000 -0800
++++ b/src/CMakeLists.txt	2013-03-05 17:09:21.000000000 -0800
+@@ -34,6 +34,12 @@
+ set_target_properties ( freenect PROPERTIES
+   VERSION ${PROJECT_VER}
+   SOVERSION ${PROJECT_APIVER})	
++if (APPLE)
++  set_target_properties ( 
++    freenect PROPERTIES INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/${PROJECT_LIBRARY_INSTALL_DIR}
++  )
++endif()
++
+ install (TARGETS freenect
+   DESTINATION "${PROJECT_LIBRARY_INSTALL_DIR}")
+ 

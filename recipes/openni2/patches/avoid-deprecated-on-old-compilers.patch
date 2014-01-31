@@ -1,0 +1,18 @@
+See https://github.com/OpenNI/OpenNI2/issues/39
+
+diff --git a/ThirdParty/PSCommon/XnLib/Include/Linux-x86/XnPlatformLinux-x86.h b/ThirdParty/PSCommon/XnLib/Include/Linux-x86/XnPlatformLinux-x86.h
+index 64f1850..4b988d9 100644
+--- a/ThirdParty/PSCommon/XnLib/Include/Linux-x86/XnPlatformLinux-x86.h
++++ b/ThirdParty/PSCommon/XnLib/Include/Linux-x86/XnPlatformLinux-x86.h
+@@ -176,7 +176,11 @@ typedef size_t				XnSizeT;
+ #define XN_API_IMPORT 
+ 
+ /** Indicates a deprecated function */
++#if defined(__clang__) || (__GNUC__ > 4 || (__GNUC__ == 4 && (__GNUC_MINOR__ > 4)))
+ #define XN_API_DEPRECATED(msg) __attribute__((deprecated("This function is deprecated: " msg)))
++#else
++#define XN_API_DEPRECATED(msg)
++#endif
+ 
+ #define XN_DEPRECATED_WARNING_IDS			
+ #define XN_HIDES_PARENT_METHOD_WARNING_ID	

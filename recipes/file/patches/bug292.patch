@@ -1,0 +1,12 @@
+--- file-5.16/src/file.c.old	2014-01-29 14:12:42.000000000 -0800
++++ file-5.16/src/file.c	2014-01-29 14:12:45.000000000 -0800
+@@ -145,7 +145,8 @@
+ 	const char *magicfile = NULL;		/* where the magic is	*/
+ 
+ 	/* makes islower etc work for other langs */
+-	(void)setlocale(LC_CTYPE, "");
++	/* but breaks on Mac, see http://bugs.gw.com/view.php?id=292 */
++	/*(void)setlocale(LC_CTYPE, "");*/
+ 
+ #ifdef __EMX__
+ 	/* sh-like wildcard expansion! Shouldn't hurt at least ... */

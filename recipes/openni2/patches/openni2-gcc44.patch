@@ -1,0 +1,34 @@
+# possible workaround for https://github.com/OpenNI/OpenNI2/issues/11
+# as of OpenNI2-2.0.0.30
+# https://gist.github.com/dankegel/6709225
+
+diff --git a/Source/Drivers/PS1080/DDK/XnDeviceBase.h b/Source/Drivers/PS1080/DDK/XnDeviceBase.h
+index c9e740b..5d7cc79 100644
+--- a/Source/Drivers/PS1080/DDK/XnDeviceBase.h
++++ b/Source/Drivers/PS1080/DDK/XnDeviceBase.h
+@@ -101,7 +101,9 @@ public:
+ 	virtual XnStatus UnregisterFromPropertyChange(const XnChar* Module, XnUInt32 propertyId, XnCallbackHandle hCallback);
+ 
+ 	typedef xnl::Event<XnNewStreamDataEventArgs> NewStreamDataEvent;
+-	NewStreamDataEvent::EventInterface& OnNewStreamDataEvent() { return m_OnNewStreamDataEvent; }
++	// gcc-4.4 can't handle this, so return the subclass, seems to work?
++	//NewStreamDataEvent::EventInterface& OnNewStreamDataEvent() { return m_OnNewStreamDataEvent; }
++	NewStreamDataEvent& OnNewStreamDataEvent() { return m_OnNewStreamDataEvent; }
+ 
+ 	/**
+ 	* Finds a stream (a module which has the IS_STREAM property set to TRUE). 
+--- OpenNI2-2.0.0.30/Source/Drivers/PSLink/LinkProtoLib/XnLinkFrameInputStream.h.old	2013-09-25 09:00:11.000000000 -0700
++++ OpenNI2-2.0.0.30/Source/Drivers/PSLink/LinkProtoLib/XnLinkFrameInputStream.h	2013-09-25 09:02:03.000000000 -0700
+@@ -49,7 +49,11 @@
+ 	virtual XnStreamFragLevel GetStreamFragLevel() const { return XN_LINK_STREAM_FRAG_LEVEL_FRAMES; }
+ 
+ 	typedef void (XN_CALLBACK_TYPE* NewFrameEventHandler)(const NewFrameEventArgs& args, void* pCookie);
+-	NewFrameEvent::EventInterface& GetNewFrameEvent() { return m_newFrameEvent; }
++        // gcc-4.4 can't handle this, so return the subclass, seems to work?
++        // Avoids error
++        // LinkProtoLib/XnLinkFrameInputStream.h:52: error: type ‘xnl::Event<xn::NewFrameEventArgs>’ is not derived from type ‘xn::LinkFrameInputStream’
++	//NewFrameEvent::EventInterface& GetNewFrameEvent() { return m_newFrameEvent; }
++	NewFrameEvent& GetNewFrameEvent() { return m_newFrameEvent; }
+ 
+ 	virtual XnBool IsOutputFormatSupported(OniPixelFormat format) const;
+ 

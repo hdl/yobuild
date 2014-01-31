@@ -1,0 +1,58 @@
+#!/bin/sh
+# Copyright 2014 Oblong, Inc
+# License: MIT
+#
+# Download a package, build it, and create a binary tarball.
+
+set -e
+set -x
+
+#--------------- Default Values ----------------------------
+
+. yb_settings
+
+#--------------- Functions ----------------------------
+
+default_build() {
+    rm -rf $YB_BUILDDIR
+    mkdir -p $YB_BUILDDIR
+    yb_download $2 $3 $4
+    cd $YB_BUILDDIR
+    DIRNAME=`ls`
+    cd $DIRNAME
+    yb_patch $1
+    yb_auto_build $lipo
+    eval $YB_DEFAULT_BUILD_PRE_PACKAGE_HOOK
+    yb_package ${DIRNAME}_$YB_WIDTH
+}
+
+usage() {
+    cat << _EOF_
+Usage: yb_default [options] pkg url [sha256sum [NEWNAME]]
+Downloads the source tarball from the given url, applies any patches,
+builds, and saves the resulting tarball.
+This is the simplest example of how to use the yb helper functions, but
+it suffices for many common packages.
+
+Options:
+--lipo    - builds 32 and 64 bits separately, then uses lipo to weld them together (mac universal only)
+_EOF_
+}
+
+lipo=""
+case $1 in
+--lipo)
+    shift
+    lipo=--lipo;;
+-h|--help)
+    usage
+    exit 0;;
+-*)
+    usage
+    exit 1;;
+esac
+
+default_build $1 $2 $3 $4
+
+echo Resulting tarball:
+eval ls -l $YB_OUTDIR/$DIRNAME*

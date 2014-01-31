@@ -1,0 +1,258 @@
+#!/bin/sh
+# Copyright (c) 2014 Oblong Industries
+# License: MIT
+#
+# Given a source tree that uses autoconf or cmake as its build system,
+# Detects whether the source tree uses autoconf or cmake, and builds accordingly,
+# then does an install to DESTDIR.
+# Like dh_auto_build, except portable to MacOSX, and allows specifying PREFIX.
+# Part of yobuild.
+
+set -e
+set -x
+
+#--------------- Default Values ----------------------------
+
+# PREFIX is where packages will live once finally installed
+PREFIX=${PREFIX:-/opt/yobuild}
+
+# DESTDIR is where the package will be temporarily installed to
+DESTDIR=${DESTDIR:-../yobuild.tmp}
+
+# Argument to pass to make to build in parallel
+PARALLEL=${PARALLEL:-"-j4 -l4"}
+
+# Kind of binaries to build: 32, 64, or on mac, universal
+YB_WIDTH=${YB_WIDTH:-64}
+
+#--------------- Helper Functions ----------------------------
+
+is_ubuntu() {
+    test -f /etc/issue
+}
+
+is_mac() {
+    test -d "$HOME/Library/Caches"
+}
+
+bs_abort() {
+    echo "Fatal error: $@"
+    exit 1
+}
+
+set_cflags_mac() {
+    unset OBJCFLAGS || true
+    unset CXXCPP || true
+    export CFLAGS="-mmacosx-version-min=$MIN_MACOSX_VERSION -O3 -g"
+    export CXXFLAGS="-mmacosx-version-min=$MIN_MACOSX_VERSION -O3 -g"
+    export LDFLAGS="-mmacosx-version-min=$MIN_MACOSX_VERSION -L$PREFIX/lib"
+
+    # gcc might really be clang, but that is ok, we trust the developer.
+    export CC="gcc"
+    export CXX="g++"
+    export OBJC="gcc"
+
+    case "$1" in
+    "32") export CC="$CC -m32"
+        export CXX="$CXX -m32"
+        export OBJC="$OBJC -m32"
+        export CFLAGS="$CFLAGS -m32"
+        export CXXFLAGS="$CXXFLAGS -m32"
+        export OBJCFLAGS="-m32"
+        export LDFLAGS="$LDFLAGS -m32"
+        ;;
+    "64")
+        ;;
+    "universal")
+        export CFLAGS="$CFLAGS -arch i386 -arch x86_64"
+        export CXXFLAGS="$CXXFLAGS -arch i386 -arch x86_64"
+        export OBJCFLAGS="-arch i386 -arch x86_64"
+        export LDFLAGS="$LDFLAGS -arch i386 -arch x86_64"
+        #export CC="$CC $CFLAGS"
+        #export CXX="$CXX $CXXFLAGS"
+        export CPP=/usr/bin/cpp
+        export CXXCPP=/usr/bin/cpp
+        ;;
+    esac
+
+    # Note: cmake ignores CPPFLAGS, so also add -I to CFLAGS and CXXFLAGS.
+    # Note: have to use -isystem instead of -I to avoid Qt build failure
+    # due to accidentally including libevent's event.h
+    # via #include "Event.h" on case-insensitive filesystems;
+    # see https://sourceforge.net/p/levent/bugs/311/
+    # Note: Apple cpp doesn't support -isystem, so don't set it ever.
+    #export CPPFLAGS="-isystem $PREFIX/include"
+    CFLAGS="$CFLAGS -isystem $PREFIX/include $YB_EXTRA_CFLAGS"
+    CXXFLAGS="$CXXFLAGS -isystem $PREFIX/include $YB_EXTRA_CXXFLAGS"
+}
+
+set_cflags() {
+    if is_ubuntu
+    then
+        export CFLAGS="-O3 -g -isystem $PREFIX/include $YB_EXTRA_CFLAGS"
+        export CXXFLAGS="-O3 -g -isystem $PREFIX/include $YB_EXTRA_CXXFLAGS"
+        export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+    else
+        set_cflags_mac $1
+    fi
+}
+
+
+global_configure_args() {
+    case $YB_WIDTH in
+    universal)
+        if grep -q dependency.tracking configure
+        then
+            echo --disable-dependency-tracking
+        fi
+    esac
+}
+
+global_cmake_args() {
+    if is_mac
+    then
+        case $YB_WIDTH in
+        universal)
+            echo -DCMAKE_OSX_ARCHITECTURES='i386;x86_64';;
+        esac
+    fi
+}
+
+default_build() {
+    set_cflags $YB_WIDTH
+    eval $YB_DEFAULT_BUILD_PRE_CONFIGURE_HOOK
+    # FIXME: also obey YB_CONFIGURE_ARGS32 here when building for 32 bits
+    if test -f configure
+    then
+        ./configure --prefix=$PREFIX `global_configure_args` $YB_CONFIGURE_ARGS
+    elif test -f CMakeLists.txt
+    then
+        cmake -D CMAKE_BUILD_TYPE=RELEASE `global_cmake_args` -D CMAKE_INSTALL_PREFIX=$PREFIX $YB_CMAKE_ARGS .
+    else
+        echo "No configure, no CMakeLists.txt.  What to do?"
+        exit 1
+    fi
+
+    make V=1 VERBOSE=1 verbose=1 $PARALLEL
+    # qmake uses INSTALL_ROOT instead of DESTDIR, bleah
+    if ls *.pro
+    then
+        make V=1 install INSTALL_ROOT=$DESTDIR
+    else
+        make V=1 install DESTDIR=$DESTDIR
+    fi
+}
+
+# Just like default_build, but runs configure separately for each
+# architecture, then uses lipo to sew them together
+# Needed for packages that make decisions about optimizations
+# or word width at configure time.
+lipo_build() {
+    DIRNAME=`pwd` 
+    DIRNAME=`basename "$DIRNAME"` 
+    case $YB_WIDTH in
+    32|64) default_build; return;;
+    esac
+
+    eval $YB_DEFAULT_BUILD_PRE_CONFIGURE_HOOK
+
+    cd ..
+    rm -rf $DESTDIR.32
+    mkdir $DESTDIR.32
+    mkdir build-32.tmp
+    cd build-32.tmp
+    set_cflags 32
+    ../$DIRNAME/configure --prefix=$PREFIX $YB_CONFIGURE_ARGS $YB_CONFIGURE_ARGS32
+    make $PARALLEL
+    make install DESTDIR=$DESTDIR.32
+    cd ..
+
+    rm -rf $DESTDIR.64
+    mkdir $DESTDIR.64
+    mkdir build-64.tmp
+    cd build-64.tmp
+    set_cflags 64
+    ../$DIRNAME/configure --prefix=$PREFIX $YB_CONFIGURE_ARGS $YB_CONFIGURE_ARGS64
+    make $PARALLEL
+    make install DESTDIR=$DESTDIR.64
+    cd ..
+
+    cp -a $DESTDIR.64/ $DESTDIR
+    for file in `cd $DESTDIR$PREFIX; find . -type f | xargs file | egrep 'Mach-O|current ar archive' | sed 's/:.*//;s/ (for.*//' | sort -u`
+    do
+        lipo -create $DESTDIR.32$PREFIX/$file $DESTDIR.64$PREFIX/$file -output $DESTDIR$PREFIX/$file
+    done
+
+    rm -rf $DESTDIR.32 $DESTDIR.64 build-32.tmp build-64.tmp
+}
+
+#--------------- Main ----------------------------
+
+if is_mac
+then
+    # There was an ABI breakage as of MacOSX 10.9 / XCode 5
+    # Ruby changed versions in an incompatible way, and the default c++ library changed in an incompatible way
+    # Let's go with the flow, and always use the default c++ library.
+    # On 10.7 and 10.9, we target 10.7
+    # On 10.9 and above, we target 10.9 (and thus libc++)
+    case `sw_vers -productVersion 2>/dev/null` in
+        10.[78]*)
+            MIN_MACOSX_VERSION=10.7;;
+        10.9*)
+            MIN_MACOSX_VERSION=10.9;;
+        *) bs_abort "Unrecognized version of macosx";;
+    esac
+fi
+
+# Refer explicitly to system pkgconfig(s), as our special pkgconfig doesn't default to it
+# FIXME: don't hardcode the architecture
+export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH}:/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig"
+export PATH="$PREFIX/bin:$PATH"
+
+usage() {
+    set +x
+    cat << _EOF_
+Script to build and install a source tree that uses autoconf or cmake
+Usage: $0 [options]
+
+Options:
+--lipo    - builds 32 and 64 bits separately, then uses lipo to weld them together (mac universal only)
+
+Environment variables which may be overridden:
+DESTDIR ($DESTDIR)
+PARALLEL ($PARALLEL)
+PREFIX ($PREFIX)
+YB_WIDTH ($YB_WIDTH)
+_EOF_
+}
+
+lipo=0
+while test "$1"
+do
+    case $1 in
+    --lipo)
+        lipo=1
+        ;;
+    -h|--help)
+        usage
+        exit 0;;
+    *)
+        echo "Unknown option $1";
+        usage
+        exit 1;;
+    esac
+    shift
+done
+
+rm -rf "$DESTDIR"
+mkdir -p "$DESTDIR"
+DESTDIR=`cd $DESTDIR; pwd`
+
+mkdir -p "$DESTDIR$PREFIX/bin"
+mkdir -p "$DESTDIR$PREFIX/lib"
+mkdir -p "$DESTDIR$PREFIX/include"
+
+case $lipo in
+0) default_build;;
+1) lipo_build;;
+esac
