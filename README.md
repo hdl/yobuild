@@ -4,15 +4,17 @@ Yobuild is a trivial portable metabuild system for open source packages.
 It's handy for application developers who need a way to build dependencies they can ship with their app.
 It generates tarballs for each package.  On Ubuntu, it can also generate .deb packages.
 
-For a list of supported packages, do 'yb_list'.
-
 ## installing
 
 To install yobuild from source, do 'sudo make install'.  This is very quick, it doesn't build any packages.
 
+Then to read the documentation, do 'man yb_build'.
+
 You can uninstall it with 'sudo make uninstall'.
 
 ## building
+
+For a list of supported packages, do 'yb_list'.
 
 To build a single package (e.g. xz), do 'yb_buildone xz'.
 
@@ -33,8 +35,6 @@ yb_default xz http://tukaani.org/xz/xz-5.0.4.tar.gz d67405798dad645965fe51cf4e40
 ```
 
 where the long hext string is the sha256sum of the source tarball.
-
-To read the documentation, do 'man yb_build'.
 
 
 ## extending
