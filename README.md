@@ -35,7 +35,7 @@ A typical recipe, /usr/share/yobuild/recipes/xz.recipe, looks like this:
 yb_default xz http://tukaani.org/xz/xz-5.0.4.tar.gz d67405798dad645965fe51cf4e40c23d1201fb234378d3c44f5a3787142b83b6
 ```
 
-where the long hext string is the sha256sum of the source tarball.
+where the long hex string is the sha256sum of the source tarball.
 
 
 ## extending
