@@ -1,6 +1,7 @@
 # yobuild
 
-Yobuild is a trivial portable metabuild system for open source packages.
+Yobuild is a trivial portable metabuild system for open source packages
+on both Linux and Mac OS X.
 It's handy for application developers who need a way to build dependencies they can ship with their app.
 It generates tarballs for each package.  On Ubuntu, it can also generate .deb packages.
 
@@ -8,7 +9,7 @@ It generates tarballs for each package.  On Ubuntu, it can also generate .deb pa
 
 To install yobuild from source, do 'sudo make install'.  This is very quick, it doesn't build any packages.
 
-Then to read the documentation, do 'man yb_build'.
+Then to read the documentation, do 'man yb_buildone'.
 
 You can uninstall it with 'sudo make uninstall'.
 
