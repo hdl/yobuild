@@ -1,2 +1,2 @@
 #!/bin/sh
-yb_default curl http://curl.haxx.se/download/curl-7.35.0.tar.gz 917d118fc5d61e9dd1538d6519bd93bbebf2e866882419781c2e0fdb2bc42121
+yb_default --lipo curl http://curl.haxx.se/download/curl-7.35.0.tar.gz 917d118fc5d61e9dd1538d6519bd93bbebf2e866882419781c2e0fdb2bc42121
